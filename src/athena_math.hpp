@@ -7,6 +7,7 @@
 
 #include "athena.hpp"  // Real
 
+// small & simple functions
 inline Real _sqr(Real x) { return x * x; }
 inline Real _max(Real a, Real b) { return a > b ? a : b; }
 inline Real _min(Real a, Real b) { return a < b ? a : b; }

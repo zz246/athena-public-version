@@ -2,6 +2,7 @@
 #include "../parameter_input.hpp"
 #include "../physics/held_suarez_94.hpp"
 #include "../athena_math.hpp" // _sqr
+#include "../globals.hpp" // Rgas
 
 //! \file held_suarez_94.cpp
 //  \brief implementation of held_suarez_94.hpp
@@ -16,9 +17,10 @@ HeldSuarez94::HeldSuarez94(ParameterInput *pin)
   tsrf = pin->GetReal("problem", "tsrf");
   tmin = pin->GetReal("problem", "tmin");
 
-  kappa = pin->GetReal("hydro", "gamma") - 1.;
-  rgas = kappa * pin->GetReal("hydro", "cv");
-  grav = - pin->GetReal("hydro", "grav_acc3");
+  kappa = (pin->GetReal("hydro", "gamma") - 1.) / pin->GetReal("hydro", "gamma");
+  rgas = Globals::Rgas / pin->GetReal("hydro", "mu");
+  //rgas = Globals::my_rank / pin->GetReal("hydro", "mu");
+  grav = - pin->GetReal("hydro", "grav_acc1");
 }
 
 Real HeldSuarez94::get_temp_eq(Real lat, Real pres)

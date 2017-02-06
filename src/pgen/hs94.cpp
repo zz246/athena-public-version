@@ -40,18 +40,18 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
     for (int j = js; j <= je; ++j) {
       hs.lat = M_PI/2. - pcoord->x2v(j);
       for (int i = is; i <= ie; ++i) {
-        phydro->w(IVX, i, j, k) = 0.;
-        phydro->w(IVY, i, j, k) = 0.;
-        phydro->w(IVZ, i, j, k) = 0.;
+        phydro->w(IVX,k,j,i) = 0.;
+        phydro->w(IVY,k,j,i) = 0.;
+        phydro->w(IVZ,k,j,i) = 0.;
         if (i == is) {
           p1 = hs.psrf;
         } else {
           hs.dz = pcoord->x1v(i) - pcoord->x1v(i - 1);
-          _root(hs.pbot, 0.5 * hs.pbot, 1., &p1, hs);
+          int err = _root(hs.pbot, 0.5 * hs.pbot, 1., &p1, hs);
         }
         double t1 = hs.get_temp_eq(hs.lat, p1);
-        phydro->w(IDN, i, j, k) = p1 / (hs.rgas * t1);
-        phydro->w(IPR, i, j, k) = p1;
+        phydro->w(IDN,k,j,i) = p1 / (hs.rgas * t1);
+        phydro->w(IPR,k,j,i) = p1;
         hs.pbot = p1;
       }
     }

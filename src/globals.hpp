@@ -11,6 +11,8 @@
 namespace Globals
 {
   extern int my_rank, nranks;
+
+  extern double const Rgas;
 }
 
 #endif // GLOBALS_HPP

@@ -10,10 +10,13 @@
 // e.g., global constants that are set once and never changed.  To prevent name collisions
 // global variables are wrapped in their own namespace.
 
-#include "athena.hpp"
+//#include "athena.hpp"
 
 namespace Globals
 {
   int my_rank; // MPI rank of this process, set at start of main()
   int nranks;  // total number of MPI ranks, set at start of main()
+
+  // mathematical and physical constants
+  extern double const Rgas = 8.314462; // universal gas constant
 }
