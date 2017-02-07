@@ -44,15 +44,20 @@ public:
     AthenaArray<Real> &c);
   void ConstantAcceleration(const Real dt, const AthenaArray<Real> *flx,
     const AthenaArray<Real> &p, AthenaArray<Real> &c);
-  void ConstantCoriolisAcceleration(const Real dt, const AthenaArray<Real> *flx,
+  void Coriolis123(const Real dt, const AthenaArray<Real> *flx,
+    const AthenaArray<Real> &p, AthenaArray<Real> &c);
+  void CoriolisXYZ(const Real dt, const AthenaArray<Real> *flx,
     const AthenaArray<Real> &p, AthenaArray<Real> &c);
   void EnrollSrcTermFunction(SrcTermFunc_t my_func);
   SrcTermFunc_t UserSourceTerm;
 
 private:
   Hydro *pmy_hydro_;  // ptr to Hydro containing this HydroSourceTerms
+
   Real gm_;           // GM for point mass MUST BE LOCATED AT ORIGIN
   Real g1_, g2_, g3_; // constant acc'n in each direction
+
   Real omega1_, omega2_, omega3_; // constant coriolis acc'n in each direction
+  Real omegax_, omegay_, omegaz_; // coriolis acc'n in cartesian direction
 };
 #endif

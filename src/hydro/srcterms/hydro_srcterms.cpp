@@ -63,6 +63,15 @@ HydroSourceTerms::HydroSourceTerms(Hydro *phyd, ParameterInput *pin)
   omega3_ = pin->GetOrAddReal("hydro","coriolis_acc3",0.0);
   if (omega3_ != 0.0) hydro_sourceterms_defined = true;
 
+  omegax_ = pin->GetOrAddReal("hydro","coriolis_accx",0.0);
+  if (omegax_ != 0.0) hydro_sourceterms_defined = true;
+
+  omegay_ = pin->GetOrAddReal("hydro","coriolis_accy",0.0);
+  if (omegay_ != 0.0) hydro_sourceterms_defined = true;
+
+  omegaz_ = pin->GetOrAddReal("hydro","coriolis_accz",0.0);
+  if (omegaz_ != 0.0) hydro_sourceterms_defined = true;
+
   UserSourceTerm = phyd->pmy_block->pmy_mesh->UserSourceTerm_;
   if(UserSourceTerm != NULL) hydro_sourceterms_defined = true;
 }
@@ -89,9 +98,13 @@ void HydroSourceTerms::AddHydroSourceTerms(const Real time, const Real dt,
   // constant acceleration (e.g. for RT instability)
   if (g1_ != 0.0 || g2_ != 0.0 || g3_ != 0.0) ConstantAcceleration(dt, flux, prim,cons);
 
-  // constant coriolis acceleration
+  // coriolis acceleration in the axial direction
   if (omega1_ != 0.0 || omega2_ != 0.0 || omega3_ != 0.0)
-    ConstantCoriolisAcceleration(dt, flux, prim, cons);
+    Coriolis123(dt, flux, prim, cons);
+
+  // coriolis acceleration in the cartesian direction
+  if (omegax_ != 0.0 || omegay_ != 0.0 || omegaz_ != 0.0)
+    CoriolisXYZ(dt, flux, prim, cons);
 
   // Add new source terms here
   // MyNewSourceTerms()

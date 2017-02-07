@@ -66,4 +66,3 @@ void HydroSourceTerms::ConstantAcceleration(const Real dt,const AthenaArray<Real
 
   return;
 }
-

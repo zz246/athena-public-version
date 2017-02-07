@@ -9,29 +9,32 @@ problem_id = hs94       # problem ID: basename of output filenames
 <output1>
 file_type  = netcdf     # netcdf data dump
 variable   = prim       # variables to be output
-dt         = 0.01       # time increment between outputs
+dt         = 10.        # time increment between outputs
 
 <time>
 cfl_number = 0.3        # The Courant, Friedrichs, & Lewy (CFL) Number
 nlim       = -1         # cycle limit
-tlim       = 0.4        # time limit
+tlim       = 300.        # time limit
+#tlim       = -1         # time limit
 
 <mesh>
 nx1        = 32         # Number of zones in X1-direction (radial)
 x1min      = 6.371E6    # minimum value of X1
-x1max      = 6.381E6    # maximum value of X1
-ix1_bc     = outflow    # inner-X1 boundary flag
-ox1_bc     = outflow    # outer-X1 boundary flag
+x1max      = 6.391E6    # maximum value of X1
+ix1_bc     = user       # inner-X1 boundary flag
+ox1_bc     = user       # outer-X1 boundary flag
+#ix1_bc     = outflow  # inner-X1 boundary flag
+#ox1_bc     = outflow  # outer-X1 boundary flag
 
-nx2        = 32           # Number of zones in X2-direction (polar angle)
-x2min      = 0.           # minimum value of X2
-x2max      = 3.141592654  # maximum value of X2
-ix2_bc     = outflow        # inner-X2 boundary flag
-ox2_bc     = outflow        # outer-X2 boundary flag
+nx2        = 32         # Number of zones in X2-direction (polar angle)
+x2min      = 0.         # minimum value of X2
+x2max      = 3.141592653589793  # maximum value of X2
+ix2_bc     = polar      # inner-X2 boundary flag
+ox2_bc     = polar      # outer-X2 boundary flag
 
 nx3        = 64           # Number of zones in X3-direction (azimuthal angle)
-x3min      = -3.141592654 # minimum value of X3
-x3max      =  3.141592654 # maximum value of X3
+x3min      = 0.           # minimum value of X3
+x3max      = 6.283185307179586 # maximum value of X3
 ix3_bc     = periodic     # inner-X3 boundary flag
 ox3_bc     = periodic     # outer-X3 boundary flag
 
@@ -40,6 +43,7 @@ ox3_bc     = periodic     # outer-X3 boundary flag
 gamma       = 1.4         # gamma = C_p/C_v
 mu          = 29.E-3      # mean molecular weight
 grav_acc1   = -9.8        # gravity accelaration
+coriolis_accz = 7.27E-5   # 2*pi/omega
 
 <problem>
 tdy         = 60.       # horizontal temperature difference
