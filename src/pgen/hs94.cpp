@@ -58,7 +58,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
 
   // setup initial pressure/temperature field
   HeldSuarez94 hs(pin);
-  double p1, t1;
+  Real p1, t1;
 
   for (int k = ks; k <= ke; ++k)
     for (int j = js; j <= je; ++j) {
@@ -73,7 +73,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
           hs.dz = pcoord->x1v(i) - pcoord->x1v(i - 1);
           int err = _root(hs.pbot, 0.5 * hs.pbot, 1., &p1, hs);
         }
-        double t1 = hs.get_temp_eq(hs.lat, p1);
+        Real t1 = hs.get_temp_eq(hs.lat, p1);
         phydro->w(IDN, k, j, i) = p1 / (hs.rgas * t1);
         phydro->w(IPR, k, j, i) = p1;
         hs.pbot = p1;
