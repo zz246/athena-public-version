@@ -28,9 +28,12 @@ void HydroSourceTerms::Coriolis123(const Real dt,const AthenaArray<Real> *flux,
     for (int j=pmb->js; j<=pmb->je; ++j) {
 #pragma simd
       for (int i=pmb->is; i<=pmb->ie; ++i) {
-        cons(IM1,k,j,i) += 2.*dt*(omega3_*cons(IM2,k,j,i) - omega2_*cons(IM3,k,j,i));
-        cons(IM2,k,j,i) += 2.*dt*(omega1_*cons(IM3,k,j,i) - omega3_*cons(IM1,k,j,i));
-        cons(IM3,k,j,i) += 2.*dt*(omega2_*cons(IM1,k,j,i) - omega1_*cons(IM2,k,j,i));
+        Real m1 = cons(IM1, k, j, i),
+             m2 = cons(IM2, k, j, i),
+             m3 = cons(IM3, k, j, i);
+        cons(IM1, k, j, i) += 2. * dt * (omega3_ * m2 - omega2_ * m3);
+        cons(IM2, k, j, i) += 2. * dt * (omega1_ * m3 - omega3_ * m1);
+        cons(IM3, k, j, i) += 2. * dt * (omega2_ * m1 - omega1_ * m2);
       }
     }}
   }
@@ -70,9 +73,12 @@ void HydroSourceTerms::CoriolisXYZ(const Real dt,const AthenaArray<Real> *flux,
           omega3 = - sin(phi)*omegax_ + cos(phi)*omegay_;
         }
 
-        cons(IM1,k,j,i) += 2.*dt*(omega3*cons(IM2,k,j,i) - omega2*cons(IM3,k,j,i));
-        cons(IM2,k,j,i) += 2.*dt*(omega1*cons(IM3,k,j,i) - omega3*cons(IM1,k,j,i));
-        cons(IM3,k,j,i) += 2.*dt*(omega2*cons(IM1,k,j,i) - omega1*cons(IM2,k,j,i));
+        Real m1 = cons(IM1, k, j, i),
+             m2 = cons(IM2, k, j, i),
+             m3 = cons(IM3, k, j, i);
+        cons(IM1, k, j, i) += 2. * dt * (omega3 * m2 - omega2 * m3);
+        cons(IM2, k, j, i) += 2. * dt * (omega1 * m3 - omega3 * m1);
+        cons(IM3, k, j, i) += 2. * dt * (omega2 * m1 - omega1 * m2);
       }
     }}
   }

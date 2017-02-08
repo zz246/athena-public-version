@@ -7,9 +7,14 @@
 //! \file held_suarez_94.cpp
 //  \brief implementation of held_suarez_94.hpp
 
-HeldSuarez94::HeldSuarez94() {}
+HeldSuarez94::HeldSuarez94() :
+  tdy(60.), tdz(10.), psrf(1.E5), tsrf(315.), tmin(200.),
+  kappa(2./7.), rgas(286.5), grav(9.8),
+  sigma_b(0.7), kf(1./86400.), ka(1./40.), ks(1./4.),
+  lat(0.), pbot(1.E5), dz(0.)
+{}
 
-HeldSuarez94::HeldSuarez94(ParameterInput *pin)
+void HeldSuarez94::LoadInputFile(ParameterInput *pin)
 {
   tdy = pin->GetReal("problem", "tdy");
   tdz = pin->GetReal("problem", "tdz");
@@ -21,21 +26,36 @@ HeldSuarez94::HeldSuarez94(ParameterInput *pin)
   rgas = Globals::Rgas / pin->GetReal("hydro", "mu");
   //rgas = Globals::my_rank / pin->GetReal("hydro", "mu");
   grav = - pin->GetReal("hydro", "grav_acc1");
+
+  sigma_b = pin->GetReal("problem", "sigma_b");
+  kf = pin->GetReal("problem", "kf");
+  ka = pin->GetReal("problem", "ka");
+  ks = pin->GetReal("problem", "ks");
 }
 
-Real HeldSuarez94::get_temp_eq(Real lat, Real pres)
+Real HeldSuarez94::GetTempEq(Real theta, Real sigma) const
 {
-  Real temp = (tsrf - tdy * _sqr(sin(lat)) - tdz * log(pres/psrf) * _sqr(cos(lat))) * pow(pres/psrf, kappa);
+  Real temp = (tsrf - tdy * _sqr(sin(theta)) - tdz * log(sigma) * _sqr(cos(theta))) 
+    * pow(sigma, kappa);
   return _max(tmin, temp);
 }
 
-Real HeldSuarez94::operator()(Real ptop)
+Real HeldSuarez94::operator()(Real ptop) const
 {
-  Real temp1 = get_temp_eq(lat, pbot),
-       temp2 = get_temp_eq(lat, ptop);
+  Real temp1 = GetTempEq(lat, pbot / psrf),
+       temp2 = GetTempEq(lat, ptop / psrf);
 
   Real rho1 = pbot / (rgas * temp1),
        rho2 = ptop / (rgas * temp2);
 
   return (ptop - pbot)/dz + sqrt(rho1 * rho2) * grav;
+}
+
+Real HeldSuarez94::Kv(Real sigma) const {
+  return kf * _max(0., (sigma - sigma_b) / (1. - sigma_b));
+}
+
+Real HeldSuarez94::Kt(Real theta, Real sigma) const {
+  return ka + (ks - ka) * _max(0., (sigma - sigma_b) / (1. - sigma_b))
+    * _sqr(_sqr(cos(theta)));
 }

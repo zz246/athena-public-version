@@ -27,6 +27,10 @@
 #include "../athena_math.hpp" // _root
 #include "../physics/held_suarez_94.hpp"  // HeldSuarez94
 
+// made global to share with BC and source functions
+static Real grav_acc;
+static HeldSuarez94 hs;
+
 // functions for boundary conditions
 
 void ProjectPressureInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,
@@ -34,8 +38,35 @@ void ProjectPressureInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> 
 void ProjectPressureOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,
      FaceField &b, Real time, Real dt, int is, int ie, int js, int je, int ks, int ke);
 
-// made global to share with BC function
-static Real grav_acc;
+// functions for Held-Suarez forcing
+void HeldSuarezForcing(MeshBlock *pmb, Real const time, Real const dt,
+    AthenaArray<Real> const &prim, AthenaArray<Real> const &bcc, AthenaArray<Real> &cons)
+{
+  for (int k = pmb->ks; k <= pmb->ke; ++k)
+    for (int j = pmb->js; j <= pmb->je; ++j)
+      for (int i = pmb->is; i <= pmb->ie; ++i) {
+        Real sigma = prim(IPR, k, j, i) / prim(IPR, k, j, pmb->is);
+        Real theta = M_PI/2. - pmb->pcoord->x2v(j);
+        //std::cout << dt << " " << hs.Kv(sigma) << " " << hs.Kt(theta, sigma) << std::endl;
+        // archive momentum
+        Real m1 = cons(IM1,k,j,i),
+             m2 = cons(IM2,k,j,i),
+             m3 = cons(IM3,k,j,i);
+
+        Real temp = prim(IPR,k,j,i) / (hs.GetRgas() * prim(IDN,k,j,i));
+        Real cv = hs.GetRgas() / (pmb->peos->GetGamma() - 1.);
+
+        // Rayleigh friction
+        cons(IM1,k,j,i) += - dt * hs.Kv(sigma) * m1; 
+        cons(IM2,k,j,i) += - dt * hs.Kv(sigma) * m2;
+        cons(IM3,k,j,i) += - dt * hs.Kv(sigma) * m3;
+        
+        // Newtonian cooling
+        cons(IEN,k,j,i) += - dt * hs.Kt(theta, sigma) * (temp - hs.GetTempEq(theta, sigma))
+          * cons(IDN,k,j,i) * cv;
+      }
+}
+
 
 //! \fn void Mesh::InitUserMeshData(ParameterInput *pin)
 //  \brief Function to initialize problem-specific data in mesh class.  Can also be used
@@ -47,6 +78,9 @@ void Mesh::InitUserMeshData(ParameterInput *pin)
   // Enroll special BCs
   EnrollUserBoundaryFunction(INNER_X1, ProjectPressureInnerX1);
   EnrollUserBoundaryFunction(OUTER_X1, ProjectPressureOuterX1);
+
+  // Enroll source term
+  EnrollUserExplicitSourceFunction(HeldSuarezForcing);
 }
 
 //! \fn void MeshBlock::ProblemGenerator(ParameterInput *pin)
@@ -57,26 +91,30 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
   grav_acc = - phydro->psrc->GetG1();
 
   // setup initial pressure/temperature field
-  HeldSuarez94 hs(pin);
+  hs.LoadInputFile(pin);
   Real p1, t1;
 
   for (int k = ks; k <= ke; ++k)
     for (int j = js; j <= je; ++j) {
-      hs.lat = M_PI/2. - pcoord->x2v(j);
+      Real theta = M_PI/2. - pcoord->x2v(j);
+      hs.SetLatitude(theta);
       for (int i = is; i <= ie; ++i) {
         phydro->w(IVX, k, j, i) = 0.;
         phydro->w(IVY, k, j, i) = 0.;
         phydro->w(IVZ, k, j, i) = 0.;
         if (i == is) {
-          p1 = hs.psrf;
+          p1 = hs.GetSurfacePressure();
         } else {
-          hs.dz = pcoord->x1v(i) - pcoord->x1v(i - 1);
-          int err = _root(hs.pbot, 0.5 * hs.pbot, 1., &p1, hs);
+          hs.SetDistance(pcoord->x1v(i) - pcoord->x1v(i - 1));
+          int err = _root(p1, 0.5 * p1, 1., &p1, hs);
+
+          if (err != 0)
+            throw std::runtime_error("FALTAL ERROR: HS94 hydrostatic integration not converge");
         }
-        Real t1 = hs.get_temp_eq(hs.lat, p1);
-        phydro->w(IDN, k, j, i) = p1 / (hs.rgas * t1);
+        Real t1 = hs.GetTempEq(theta, p1 / hs.GetSurfacePressure());
+        phydro->w(IDN, k, j, i) = p1 / (hs.GetRgas() * t1);
         phydro->w(IPR, k, j, i) = p1;
-        hs.pbot = p1;
+        hs.SetBottomPressure(p1);
       }
     }
 
