@@ -1,0 +1,62 @@
+Athena Code Review
+==================
+- 2/1/2017
+Reviewing mesh/mesh.hpp.
+This is the most important part of the Athena code because everything starts from the
+mesh. Top level class
+
+NeighborBlock: identifies a neighboring block
+ox1, ox2, ox3: flags {-1, 0, 1}, to identify which boundary
+fid, face boundary id
+eid, edge boundary id
+// what is fi1, fi2 ?
+
+MeshBlock:
+coordinates, boundary, amr, neighbor
+is starts from NGHOST
+
+Mesh:
+Mesh is like the control of all problem
+includes global fields like start_time, tlim, cfl_number, etc
+
+
+- 2/3/2017
+processor list fields like:
+nslist: a rank-sized list of the start id in the block tree for this rank
+nblist: number of meshblocks processed by this rank
+costlist: a nbtotal-sized list of the cost of each block
+ranklist: a nbtotal-sized list of each meshblock processed by which processor
+
+The ids are processed in LoadBalance
+
+function pointers:
+MeshGenFunc, SrcTermFunc, BValFunc, AMRFlagFunc, TimeStepFunc
+
+these private members can be modifed by Enroll Function
+
+DefaultMeshGrneratorX1: given logical location [0,1], the actual limits [x1min,
+x1max], ratio between two adjacent grid, return the actual position of this
+
+cfl number less than 1 in 1-D, 0.5 in 2-D, 0.33 in 3-D
+grid ratio should be from 0.9 to 1.1
+
+nrbx1, nrbx2, nrbx3, number of meshblocks in each direction
+nbmax = max(nrbx1, nrbx2, nrbx3)
+
+if no meshblock field are assigned, meshblock is set to one
+
+root_level is log(nbmax, 2)
+tree.CreateRootGrid function(nrbx1, nrbx2, nrbx3, root_level)
+
+flags to determine whether it is smr/amr, multilevel, adaptive
+
+maximum number of grids in a given level is nrbx? * (1<<level)
+
+AddMeshBlock adds a meshblock to the meshtree
+
+tree has several methods:
+1) CountMeshBlock, 2) LogicalLocation, 3) GetMeshBlockList
+
+nref,nderef, rdisp, ddisp, bnref, bndref, brdisp, rddisp -> amr variables
+
+gid, lid in MeshBlock are both input variables
