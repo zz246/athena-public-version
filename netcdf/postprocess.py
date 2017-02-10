@@ -2,10 +2,14 @@
 import subprocess, glob, os
 from netCDF4 import Dataset
 
-folder      = '/home/chengli/athena-public-version/3d-hs94/'
-problem     = 'hs94'
-nrb1, nrb2, nrb3 = 1, 4, 8
-bx1, bx2, bx3    = 32, 16, 16
+#folder      = '/home/chengli/athena-public-version/3d-hs94/'
+#problem     = 'hs94'
+#nrb1, nrb2, nrb3 = 1, 2, 4
+#bx1, bx2, bx3    = 32, 16, 16
+folder      = '/home/chengli/athena-public-version/3d-rt/'
+problem     = 'rt'
+nrb1, nrb2, nrb3 = 2, 2, 2
+bx1, bx2, bx3    = 32, 32, 32
 num_blocks  = nrb1 * nrb2 * nrb3
 
 for i in range(num_blocks):
