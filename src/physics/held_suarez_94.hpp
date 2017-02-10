@@ -22,7 +22,7 @@ public:
   void LoadInputFile(ParameterInput *pin);
 
   //! \return equilibrium temperature at pressure and latitude
-  Real GetTempEq(Real theta, Real sigma) const;
+  Real GetTempEq(Real theta, Real pres) const;
 
   //! used in solving for hydrostatic equilibrium
   Real operator()(Real ptop) const;

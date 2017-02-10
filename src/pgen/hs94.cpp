@@ -25,6 +25,7 @@
 #include "../field/field.hpp"
 #include "../mesh/mesh.hpp"
 #include "../athena_math.hpp" // _root
+#include "../utils/utils.hpp"
 #include "../physics/held_suarez_94.hpp"  // HeldSuarez94
 
 // made global to share with BC and source functions
@@ -45,7 +46,7 @@ void HeldSuarezForcing(MeshBlock *pmb, Real const time, Real const dt,
   for (int k = pmb->ks; k <= pmb->ke; ++k)
     for (int j = pmb->js; j <= pmb->je; ++j)
       for (int i = pmb->is; i <= pmb->ie; ++i) {
-        Real sigma = prim(IPR, k, j, i) / prim(IPR, k, j, pmb->is);
+        Real sigma = prim(IPR,k,j,i) / prim(IPR,k,j,pmb->is);
         Real theta = M_PI/2. - pmb->pcoord->x2v(j);
         //std::cout << dt << " " << hs.Kv(sigma) << " " << hs.Kt(theta, sigma) << std::endl;
         // archive momentum
@@ -62,8 +63,13 @@ void HeldSuarezForcing(MeshBlock *pmb, Real const time, Real const dt,
         cons(IM3,k,j,i) += - dt * hs.Kv(sigma) * m3;
         
         // Newtonian cooling
-        cons(IEN,k,j,i) += - dt * hs.Kt(theta, sigma) * (temp - hs.GetTempEq(theta, sigma))
-          * cons(IDN,k,j,i) * cv;
+        //cons(IEN,k,j,i) += - dt * hs.Kt(theta, sigma) * (temp - hs.GetTempEq(theta, prim(IPR,k,j,i)))
+        //  * cons(IDN,k,j,i) * cv;
+        
+        // debug
+        //std::cout << prim(IPR,k,j,i) << " " << prim(IDN,k,j,i) << std::endl;
+        //std::cout << temp << " " << hs.GetTempEq(theta, prim(IPR,k,j,i)) << std::endl;
+        //std::cout << cv << " " << hs.Kt(theta, sigma) << " " << dt << " " << cons(IDN,k,j,i) << std::endl;
       }
 }
 
@@ -76,17 +82,21 @@ void Mesh::InitUserMeshData(ParameterInput *pin)
 {
   // 3D problem
   // Enroll special BCs
-  EnrollUserBoundaryFunction(INNER_X1, ProjectPressureInnerX1);
-  EnrollUserBoundaryFunction(OUTER_X1, ProjectPressureOuterX1);
+  //EnrollUserBoundaryFunction(INNER_X1, ProjectPressureInnerX1);
+  //EnrollUserBoundaryFunction(OUTER_X1, ProjectPressureOuterX1);
 
   // Enroll source term
-  EnrollUserExplicitSourceFunction(HeldSuarezForcing);
+  //EnrollUserExplicitSourceFunction(HeldSuarezForcing);
 }
 
 //! \fn void MeshBlock::ProblemGenerator(ParameterInput *pin)
 //  \brief Held-Suarez problem generator
 void MeshBlock::ProblemGenerator(ParameterInput *pin)
 {
+  // pertubation field
+  long int iseed = -1;
+  Real k3 = 10.*M_PI/(pmy_mesh->mesh_size.x3max - pmy_mesh->mesh_size.x3min);
+
   // setup global variable shared by boundary condition
   grav_acc = - phydro->psrc->GetG1();
 
@@ -99,21 +109,21 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
       Real theta = M_PI/2. - pcoord->x2v(j);
       hs.SetLatitude(theta);
       for (int i = is; i <= ie; ++i) {
-        phydro->w(IVX, k, j, i) = 0.;
-        phydro->w(IVY, k, j, i) = 0.;
-        phydro->w(IVZ, k, j, i) = 0.;
+        phydro->w(IVX,k,j,i) = 0.;
+        phydro->w(IVY,k,j,i) = 0.;
+        phydro->w(IVZ,k,j,i) = (ran2(&iseed) - 0.5)*(1. + cos(k3*pcoord->x3v(k)));
         if (i == is) {
           p1 = hs.GetSurfacePressure();
         } else {
-          hs.SetDistance(pcoord->x1v(i) - pcoord->x1v(i - 1));
+          hs.SetDistance(pcoord->dx1f(i));
           int err = _root(p1, 0.5 * p1, 1., &p1, hs);
 
           if (err != 0)
             throw std::runtime_error("FALTAL ERROR: HS94 hydrostatic integration not converge");
         }
-        Real t1 = hs.GetTempEq(theta, p1 / hs.GetSurfacePressure());
-        phydro->w(IDN, k, j, i) = p1 / (hs.GetRgas() * t1);
-        phydro->w(IPR, k, j, i) = p1;
+        Real t1 = hs.GetTempEq(theta, p1);
+        phydro->w(IDN,k,j,i) = p1 / (hs.GetRgas() * t1);
+        phydro->w(IPR,k,j,i) = p1;
         hs.SetBottomPressure(p1);
       }
     }
@@ -133,12 +143,12 @@ void ProjectPressureInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> 
       for (int j = js; j <= je; ++j)
         for (int i = 1; i <= NGHOST; ++i) {
           if (n == IVX) {
-            prim(IVX, k, j, is - i) = - prim(IVX, k, j, is + i - 1);  // reflect 1-vel
+            prim(IVX,k,j,is - i) = - prim(IVX,k,j,is + i - 1);  // reflect 1-vel
           } else if (n == IPR) {
-            prim(IPR, k, j, is - i) = prim(IPR, k, j, is + i - 1)
-              + prim(IDN, k, j, is + i - 1) * grav_acc * (2 * i - 1) * pco->dx1f(is + i - 1);
+            prim(IPR,k,j,is - i) = prim(IPR,k,j,is + i - 1)
+              + prim(IDN,k,j,is + i - 1) * grav_acc * (2 * i - 1) * pco->dx1f(i);
           } else {
-            prim(n, k, j, is - i) = prim(n, k, j, is + i - 1);
+            prim(n,k,j,is - i) = prim(n,k,j,is + i - 1);
           }
         }
 
@@ -156,12 +166,12 @@ void ProjectPressureOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> 
       for (int j = js; j <= je; ++j)
         for (int i = 1; i <= NGHOST; ++i) {
           if (n == IVX) {
-            prim(IVX, k, j, ie + i) = - prim(IVX, k, j, ie - i + 1);  // reflect 1-vel
+            prim(IVX,k,j,ie + i) = - prim(IVX,k,j,ie - i + 1);  // reflect 1-vel
           } else if (n == IPR) {
-            prim(IPR, k, j, ie + i) = prim(IPR, k, j, ie - i + 1)
-              - prim(IDN, k, j, ie - i + 1) * grav_acc * (2 * i - 1) * pco->dx1f(ie - i + 1);
+            prim(IPR,k,j,ie + i) = prim(IPR,k,j,ie - i + 1)
+              - prim(IDN,k,j,ie - i + 1) * grav_acc * (2 * i - 1) * pco->dx1f(i);
           } else {
-            prim(n, k, j, ie + i) = prim(n, k, j, ie - i + 1);
+            prim(n,k,j,ie + i) = prim(n,k,j,ie - i + 1);
           }
         }
 

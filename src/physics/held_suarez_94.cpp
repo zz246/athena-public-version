@@ -24,7 +24,6 @@ void HeldSuarez94::LoadInputFile(ParameterInput *pin)
 
   kappa = (pin->GetReal("hydro", "gamma") - 1.) / pin->GetReal("hydro", "gamma");
   rgas = Globals::Rgas / pin->GetReal("hydro", "mu");
-  //rgas = Globals::my_rank / pin->GetReal("hydro", "mu");
   grav = - pin->GetReal("hydro", "grav_acc1");
 
   sigma_b = pin->GetReal("problem", "sigma_b");
@@ -33,17 +32,17 @@ void HeldSuarez94::LoadInputFile(ParameterInput *pin)
   ks = pin->GetReal("problem", "ks");
 }
 
-Real HeldSuarez94::GetTempEq(Real theta, Real sigma) const
+Real HeldSuarez94::GetTempEq(Real theta, Real pres) const
 {
-  Real temp = (tsrf - tdy * _sqr(sin(theta)) - tdz * log(sigma) * _sqr(cos(theta))) 
-    * pow(sigma, kappa);
+  Real temp = (tsrf - tdy * _sqr(sin(theta)) - tdz * log(pres/psrf) * _sqr(cos(theta))) 
+    * pow(pres/psrf, kappa);
   return _max(tmin, temp);
 }
 
 Real HeldSuarez94::operator()(Real ptop) const
 {
-  Real temp1 = GetTempEq(lat, pbot / psrf),
-       temp2 = GetTempEq(lat, ptop / psrf);
+  Real temp1 = GetTempEq(lat, pbot),
+       temp2 = GetTempEq(lat, ptop);
 
   Real rho1 = pbot / (rgas * temp1),
        rho2 = ptop / (rgas * temp2);
