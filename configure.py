@@ -64,7 +64,7 @@ parser.add_argument('--coord',
 # --eos=[name] argument
 parser.add_argument('--eos',
     default='adiabatic',
-    choices=['adiabatic','isothermal'],
+    choices=['adiabatic','isothermal', 'shallow_water'],
     help='select equation of state')
 
 # --flux=[name] argument
@@ -176,6 +176,8 @@ if args['flux'] == 'default':
     args['flux'] = 'hlld'
   elif args['eos'] == 'isothermal':
     args['flux'] = 'hlle'
+  elif args['eos'] == 'shallow_water':
+    args['flux'] = 'roe'
   else:
     args['flux'] = 'hllc'
 
@@ -186,6 +188,8 @@ if args['flux'] == 'hllc' and args['b']:
   raise SystemExit('### CONFIGURE ERROR: HLLC flux cannot be used with MHD')
 if args['flux'] == 'hlld' and not args['b']:
   raise SystemExit('### CONFIGURE ERROR: HLLD flux can only be used with MHD')
+if args['flux'] != 'roe' and args['eos'] == 'shallow_water':
+  raise SystemExit('### CONFIGURE ERROR: ShallowWater model only be used with Roe flux')
 
 # Check relativity
 if args['s'] and args['g']:
@@ -205,6 +209,9 @@ if args['eos'] == 'isothermal':
   if args['s'] or args['g']:
     raise SystemExit('### CONFIGURE ERROR: '\
         + 'Isothermal EOS is incompatible with relativity')
+  if args['s'] or args['g']:
+    raise SystemExit('### CONFIGURE ERROR: '\
+        + 'ShallowWater EOS is incompatible with relativity')
 
 #--- Step 3. Set definitions and Makefile options based on above arguments -------------
 
@@ -227,6 +234,8 @@ if args['eos'] == 'adiabatic':
   definitions['NHYDRO_VARIABLES'] = '5'
 if args['eos'] == 'isothermal':
   definitions['NHYDRO_VARIABLES'] = '4'
+if args['eos'] == 'shallow_water':
+  definitions['NHYDRO_VARIABLES'] = '3'
 
 # --flux=[name] argument
 definitions['RSOLVER'] = makefile_options['RSOLVER_FILE'] = args['flux']
