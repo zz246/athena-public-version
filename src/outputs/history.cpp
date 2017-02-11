@@ -68,6 +68,8 @@ void HistoryOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool flag)
         Real& u_my = phyd->u(IM2,k,j,i);
         Real& u_mz = phyd->u(IM3,k,j,i);
 
+        //std::cout << u_mz << " " << phyd->w(IVZ,k,j,i) << std::endl;
+
         data_sum[0] += vol(i)*u_d;
         data_sum[1] += vol(i)*u_mx;
         data_sum[2] += vol(i)*u_my;

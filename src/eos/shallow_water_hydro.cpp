@@ -36,7 +36,7 @@ void EquationOfState::ConservedToPrimitive(AthenaArray<Real> &cons,
         prim(IDN,k,j,i) = cons(IDN,k,j,i);
         prim(IVX,k,j,i) = cons(IM1,k,j,i) * di;
         prim(IVY,k,j,i) = cons(IM2,k,j,i) * di;
-        prim(IVZ,k,j,i) = cons(IM3,k,j,i) * di;
+        prim(IVZ,k,j,i) = 0.;
       }
 }
 
@@ -51,7 +51,7 @@ void EquationOfState::PrimitiveToConserved(AthenaArray<Real> const& prim,
         cons(IDN,k,j,i) = d;
         cons(IM1,k,j,i) = prim(IVX,k,j,i) * d;
         cons(IM2,k,j,i) = prim(IVY,k,j,i) * d;
-        cons(IM3,k,j,i) = prim(IVZ,k,j,i) * d;
+        cons(IM3,k,j,i) = 0.;
       }
 }
 

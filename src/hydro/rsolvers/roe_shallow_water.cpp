@@ -3,11 +3,12 @@
 
 // C/C++ headers
 #include <cmath>      // sqrt()
+#include <iostream>
 
 // Athena++ headers
-#include "../../hydro.hpp"
-#include "../../../athena.hpp"
-#include "../../../athena_arrays.hpp"
+#include "../hydro.hpp"
+#include "../../athena.hpp"
+#include "../../athena_arrays.hpp"
 
 void Hydro::RiemannSolver(int const k, int const j, int const il, int const iu,
     int const ivx, AthenaArray<Real> const& bx, AthenaArray<Real> &wl,
@@ -51,6 +52,7 @@ void Hydro::RiemannSolver(int const k, int const j, int const il, int const iu,
     flx(IDN, i) = ul[1];
     flx(ivx, i) = ul[1] * ul[1] / ul[0] + 0.5 * ul[0] * ul[0];
     flx(ivy, i) = ul[1] * ul[2] / ul[0];
+    flx(IVZ, i) = 0.;
 
     for (int r = 0; r < 3; ++r)
       if (speed[r] < 0.) {

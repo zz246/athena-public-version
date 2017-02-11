@@ -235,7 +235,7 @@ if args['eos'] == 'adiabatic':
 if args['eos'] == 'isothermal':
   definitions['NHYDRO_VARIABLES'] = '4'
 if args['eos'] == 'shallow_water':
-  definitions['NHYDRO_VARIABLES'] = '3'
+  definitions['NHYDRO_VARIABLES'] = '4'
 
 # --flux=[name] argument
 definitions['RSOLVER'] = makefile_options['RSOLVER_FILE'] = args['flux']
@@ -265,7 +265,10 @@ else:
   definitions['MAGNETIC_FIELDS_ENABLED'] = '0'
   makefile_options['EOS_FILE'] += '_hydro'
   definitions['NFIELD_VARIABLES'] = '0'
-  makefile_options['RSOLVER_DIR'] = 'hydro/'
+  if args['eos'] == 'shallow_water':
+    makefile_options['RSOLVER_DIR'] = './'
+  else:
+    makefile_options['RSOLVER_DIR'] = 'hydro/'
   if args['eos'] == 'adiabatic':
     definitions['NWAVE_VALUE'] = '5'
   elif args['eos'] == 'isothermal':
