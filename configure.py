@@ -268,8 +268,11 @@ else:
   makefile_options['RSOLVER_DIR'] = 'hydro/'
   if args['eos'] == 'adiabatic':
     definitions['NWAVE_VALUE'] = '5'
-  else:
+  elif args['eos'] == 'isothermal':
     definitions['NWAVE_VALUE'] = '4'
+  elif args['eos'] == 'shallow_water':
+    definitions['NWAVE_VALUE'] = '3'
+    makefile_options['RSOLVER_FILE'] += '_shallow_water'
 
 # -s, -g, and -t arguments
 definitions['RELATIVISTIC_DYNAMICS'] = '1' if args['s'] or args['g'] else '0'
