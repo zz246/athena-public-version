@@ -318,6 +318,54 @@ public:
 };
 
 //----------------------------------------------------------------------------------------
+//! \class SphericalLatlon
+//  \brief derived class for spherical lat-lon coordinates.  Many of the length, area,
+//  and volume functions in the Coordinates abstract base class are over-written.
+
+class SphericalLatlon: public Coordinates {
+  friend class HydroSourceTerms;
+
+public:
+  SphericalLatlon(MeshBlock *pmb, ParameterInput *pin, bool flag);
+  ~SphericalLatlon();
+
+  // functions...
+  // ...to compute length of edges
+  void Edge2Length(const int k, const int j, const int il, const int iu,
+    AthenaArray<Real> &len);
+  void Edge3Length(const int k, const int j, const int il, const int iu,
+    AthenaArray<Real> &len);
+  Real GetEdge2Length(const int k, const int j, const int i);
+  Real GetEdge3Length(const int k, const int j, const int i);
+
+  // ...to compute physical width at cell center
+  void CenterWidth2(const int k, const int j, const int il, const int iu,
+                            AthenaArray<Real> &dx2);
+  void CenterWidth3(const int k, const int j, const int il, const int iu,
+                            AthenaArray<Real> &dx3);
+
+  // ...to compute area of faces
+  void Face1Area(const int k, const int j, const int il, const int iu,
+    AthenaArray<Real> &area);
+  void Face2Area(const int k, const int j, const int il, const int iu,
+    AthenaArray<Real> &area);
+  void Face3Area(const int k, const int j, const int il, const int iu,
+    AthenaArray<Real> &area);
+  Real GetFace1Area(const int k, const int j, const int i);
+  Real GetFace2Area(const int k, const int j, const int i);
+  Real GetFace3Area(const int k, const int j, const int i);
+
+  // ...to compute volumes of cells
+  void CellVolume(const int k, const int j, const int il, const int iu,
+    AthenaArray<Real> &vol);
+  Real GetCellVolume(const int k, const int j, const int i);
+
+  // ...to compute geometrical source terms
+  void CoordSrcTerms(const Real dt, const AthenaArray<Real> *flux,
+    const AthenaArray<Real> &prim, const AthenaArray<Real> &bcc, AthenaArray<Real> &u);
+};
+
+//----------------------------------------------------------------------------------------
 //! \class Minkowski
 //  \brief derived class for Minkowski (flat) spacetime and Cartesian coordinates in GR.
 //  None of the length, area, and volume functions in the abstract base class need to be

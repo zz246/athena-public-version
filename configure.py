@@ -57,7 +57,8 @@ parser.add_argument('--prob',
 # --coord=[name] argument
 parser.add_argument('--coord',
     default='cartesian',
-    choices=['cartesian','cylindrical','spherical_polar','minkowski','sinusoidal',
+    choices=['cartesian','cylindrical','spherical_polar','spherical_latlon',
+      'minkowski','sinusoidal',
         'tilted','schwarzschild','kerr-schild'],
     help='select coordinate system')
 
@@ -199,10 +200,12 @@ if args['t'] and not args['g']:
   raise SystemExit('### CONFIGURE ERROR: Frame transformations only apply to GR')
 if args['g'] and not args['t'] and args['flux'] not in ('llf','hlle'):
   raise SystemExit('### CONFIGURE ERROR: Frame transformations required for ' + args['flux'])
-if args['g'] and args['coord'] in ('cartesian','cylindrical','spherical_polar'):
+if args['g'] and args['coord'] in ('cartesian','cylindrical','spherical_polar',
+  'spherical_latlon'):
   raise SystemExit('### CONFIGURE ERROR: ' \
       + 'GR cannot be used with ' + args['coord'] + ' coordinates')
-if not args['g'] and args['coord'] not in ('cartesian','cylindrical','spherical_polar'):
+if not args['g'] and args['coord'] not in ('cartesian','cylindrical','spherical_polar',
+    'spherical_latlon'):
   raise SystemExit('### CONFIGURE ERROR: ' \
       + args['coord'] + ' coordinates only apply to GR')
 if args['eos'] == 'isothermal':
