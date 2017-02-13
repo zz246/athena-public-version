@@ -230,7 +230,12 @@ definitions['PROBLEM'] = makefile_options['PROBLEM_FILE'] = args['prob']
 definitions['COORDINATE_SYSTEM'] = makefile_options['COORDINATES_FILE'] = args['coord']
 
 # --eos=[name] argument
-definitions['NON_BAROTROPIC_EOS'] = '1' if args['eos'] == 'adiabatic' else '0'
+if args['eos'] == 'adiabatic':
+  definitions['NON_BAROTROPIC_EOS'] = '1'
+elif args['eos'] == 'shallow_water':
+  definitions['NON_BAROTROPIC_EOS'] = '1'
+else:
+  definitions['NON_BAROTROPIC_EOS'] = '0'
 makefile_options['EOS_FILE'] = args['eos']
 # set number of hydro variables for adiabatic/isothermal
 if args['eos'] == 'adiabatic':

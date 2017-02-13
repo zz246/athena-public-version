@@ -331,17 +331,17 @@ public:
 
   // functions...
   // ...to compute length of edges
+  void Edge1Length(const int k, const int j, const int il, const int iu,
+    AthenaArray<Real> &len);
   void Edge2Length(const int k, const int j, const int il, const int iu,
     AthenaArray<Real> &len);
-  void Edge3Length(const int k, const int j, const int il, const int iu,
-    AthenaArray<Real> &len);
+  Real GetEdge1Length(const int k, const int j, const int i);
   Real GetEdge2Length(const int k, const int j, const int i);
-  Real GetEdge3Length(const int k, const int j, const int i);
 
   // ...to compute physical width at cell center
-  void CenterWidth2(const int k, const int j, const int il, const int iu,
+  void CenterWidth1(const int k, const int j, const int il, const int iu,
                             AthenaArray<Real> &dx2);
-  void CenterWidth3(const int k, const int j, const int il, const int iu,
+  void CenterWidth2(const int k, const int j, const int il, const int iu,
                             AthenaArray<Real> &dx3);
 
   // ...to compute area of faces

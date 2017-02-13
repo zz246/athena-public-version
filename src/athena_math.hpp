@@ -9,6 +9,7 @@
 
 // small & simple functions
 inline Real _sqr(Real x) { return x * x; }
+inline Real _cub(Real x) { return x * x * x; }
 inline Real _max(Real a, Real b) { return a > b ? a : b; }
 inline Real _min(Real a, Real b) { return a < b ? a : b; }
 inline int _sign(Real x) { return x < 0. ? -1 : 1; }
