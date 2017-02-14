@@ -304,19 +304,24 @@ void SphericalLatlon::CoordSrcTerms(const Real dt, const AthenaArray<Real> *flux
       for (int i=pmy_block->is; i<=pmy_block->ie; ++i) {
         // src_3 = < M_{theta theta} + M_{phi phi} ><1/r>
         Real m_kk = prim(IDN,k,j,i)*(_sqr(prim(IM1,k,j,i)) + _sqr(prim(IM2,k,j,i)));
-        if (NON_BAROTROPIC_EOS) {
-           m_kk += 2.0*prim(IPR,k,j,i);
-        } else {
-           m_kk += 2.0*(iso_cs*iso_cs)*prim(IDN,k,j,i);
+
+        if (EQUATION_OF_STATE == "adiabatic") {
+          m_kk += 2.0*prim(IPR,k,j,i);
+        } else if (EQUATION_OF_STATE == "shallow_water") {
+          m_kk = 0.;
+        } else if (EQUATION_OF_STATE == "isothermal") {
+          m_kk += 2.0*(iso_cs*iso_cs)*prim(IDN,k,j,i);
         }
+
         if (MAGNETIC_FIELDS_ENABLED) {
            m_kk += _sqr(bcc(IB3,k,j,i));
         }
+
         Real darea = 0.5 * (_sqr(x3f(k+1)) - _sqr(x3f(k)));
         Real dvol  = 1./3. * (_cub(x3f(k+1)) - _cub(x3f(k)));
         u(IM3,k,j,i) += dt * darea/dvol * m_kk;
 
-        // src_2 = -< M_{theta r} ><1/r> 
+        /* src_2 = -< M_{theta r} ><1/r> 
         u(IM2,k,j,i) -= dt * dx3f(k)/((x3f(k) + x3f(k+1)) * dvol) *
           (_sqr(x3f(k)) * flux[X3DIR](IM2,k,j,i)
          + _sqr(x3f(k+1)) * flux[X3DIR](IM2,k+1,j,i));
@@ -324,17 +329,21 @@ void SphericalLatlon::CoordSrcTerms(const Real dt, const AthenaArray<Real> *flux
         // src_1 = -< M_{phi r} ><1/r> 
         u(IM1,k,j,i) -= dt * dx3f(k)/((x3f(k) + x3f(k+1)) * dvol) *
           (_sqr(x3f(k)) * flux[X3DIR](IM1,k,j,i)
-         + _sqr(x3f(k+1)) * flux[X3DIR](IM1,k+1,j,i));
+         + _sqr(x3f(k+1)) * flux[X3DIR](IM1,k+1,j,i));*/
 
         // src_2 = < M_{phi phi} ><cot theta/r>
         Real m_pp = prim(IDN,k,j,i)*_sqr(prim(IM1,k,j,i));
-        if (NON_BAROTROPIC_EOS) {
-           m_pp += prim(IPR,k,j,i);
-        } else {
-           m_pp += (iso_cs*iso_cs)*prim(IDN,k,j,i);
+
+        if (EQUATION_OF_STATE == "adiabatic") {
+          m_pp += prim(IPR,k,j,i);
+        } else if (EQUATION_OF_STATE == "shallow_water") {
+          m_pp += 0.5 * _sqr(prim(IDN,k,j,i));
+        } else if (EQUATION_OF_STATE == "isothermal") {
+          m_pp += (iso_cs*iso_cs)*prim(IDN,k,j,i);
         }
+
         if (MAGNETIC_FIELDS_ENABLED) {
-           m_pp += 0.5*( _sqr(bcc(IB3,k,j,i)) + _sqr(bcc(IB2,k,j,i)) - _sqr(bcc(IB1,k,j,i)) );
+          m_pp += 0.5*( _sqr(bcc(IB3,k,j,i)) + _sqr(bcc(IB2,k,j,i)) - _sqr(bcc(IB1,k,j,i)) );
         }
         Real tan_theta = (cos(x2f(j)) - cos(x2f(j+1))) / (sin(x2f(j+1)) - sin(x2f(j)));
         u(IM2,k,j,i) -= dt * darea/dvol * tan_theta * m_pp;

@@ -6,10 +6,17 @@ from netCDF4 import Dataset
 #problem     = 'hs94'
 #nrb1, nrb2, nrb3 = 1, 2, 4
 #bx1, bx2, bx3    = 32, 16, 16
+
 folder      = '/home/chengli/athena-public-version/3d-rt/'
 problem     = 'rt'
 nrb1, nrb2, nrb3 = 2, 2, 2
 bx1, bx2, bx3    = 32, 32, 32
+
+folder      = '/home/chengli/athena-public-version/2d-sw/'
+problem     = 'sw'
+nrb1, nrb2, nrb3 = 4, 2, 1
+bx1, bx2, bx3    = 64, 64, 1
+
 num_blocks  = nrb1 * nrb2 * nrb3
 
 for i in range(num_blocks):
@@ -36,8 +43,8 @@ for i in range(num_blocks):
 
   data.variables['x3'].setncattr('domain_decomposition',
       [1, bx3 * nrb3, bx3 * loc[2] + 1, bx3 * (loc[2] + 1)])
-  data.variables['x3b'].setncattr('domain_decomposition',
-      [0, bx3 * nrb3, bx3 * loc[2], bx3 * (loc[2] + 1)])
+  #data.variables['x3b'].setncattr('domain_decomposition',
+  #    [0, bx3 * nrb3, bx3 * loc[2], bx3 * (loc[2] + 1)])
 
   data.close()
 

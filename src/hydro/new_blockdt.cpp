@@ -63,7 +63,7 @@ Real Hydro::NewBlockTimeStep(void)
   dt1.InitWithShallowSlice(dt1_,2,tid,1);
   dt2.InitWithShallowSlice(dt2_,2,tid,1);
   dt3.InitWithShallowSlice(dt3_,2,tid,1);
-  Real wi[(NWAVE)];
+  Real wi[NHYDRO];
 
   for (int k=ks; k<=ke; ++k){
 
@@ -75,11 +75,8 @@ Real Hydro::NewBlockTimeStep(void)
       if(!RELATIVISTIC_DYNAMICS) {
 //#pragma simd
         for (int i=is; i<=ie; ++i){
-          wi[IDN]=w(IDN,k,j,i);
-          wi[IVX]=w(IVX,k,j,i);
-          wi[IVY]=w(IVY,k,j,i);
-          wi[IVZ]=w(IVZ,k,j,i);
-          if (NON_BAROTROPIC_EOS) wi[IPR]=w(IPR,k,j,i);
+          for (int n = 0; n < NHYDRO; ++n)
+            wi[n] = w(n,k,j,i);
 
           if (MAGNETIC_FIELDS_ENABLED) {
 

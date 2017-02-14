@@ -19,7 +19,11 @@
 // coordinate system
 #define COORDINATE_SYSTEM "@COORDINATE_SYSTEM@"
 
+// equation of state
+#define EQUATION_OF_STATE "@EQUATION_OF_STATE@"
+
 // non-barotropic equation of state (i.e. P not simply a func of rho)? default=1 (true)
+// legacy definition
 #define NON_BAROTROPIC_EOS @NON_BAROTROPIC_EOS@
 
 // Riemann solver

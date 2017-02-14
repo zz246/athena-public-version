@@ -189,7 +189,8 @@ Outputs::Outputs(Mesh *pm, ParameterInput *pin)
         op.include_ghost_zones=pin->GetOrAddBoolean(op.block_name,"ghost_zones",false);
 
         // read ghost cell option
-        if(COORDINATE_SYSTEM == "cylindrical" || COORDINATE_SYSTEM == "spherical_polar")
+        if(COORDINATE_SYSTEM == "cylindrical" || COORDINATE_SYSTEM == "spherical_polar"
+            || COORDINATE_SYSTEM == "spherical_latlon")
           op.cartesian_vector=pin->GetOrAddBoolean(op.block_name,"cartesian_vector",false);
         else 
           op.cartesian_vector=false;
@@ -905,6 +906,18 @@ void OutputType::CalculateCartesianVector(AthenaArray<Real> &src, AthenaArray<Re
       }
     }
   }
+
+  if(COORDINATE_SYSTEM == "spherical_latlon") {
+      for(int k=out_ks; k<=out_ke; k++)
+        for(int j=out_js; j<=out_je; j++)
+          for(int i=out_is; i<=out_ie; i++) {
+            dst(0,k,j,i)=src(0,k,j,i);
+            dst(1,k,j,i)=src(1,k,j,i);
+            dst(2,k,j,i)=src(2,k,j,i);
+          }
+  }
+
+
   if(COORDINATE_SYSTEM == "cylindrical") {
     for(int k=out_ks; k<=out_ke; k++) {
       for(int j=out_js; j<=out_je; j++) {
