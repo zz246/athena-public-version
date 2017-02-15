@@ -5,6 +5,9 @@
 //========================================================================================
 //  \brief source terms due to constant coriolis acceleration
 
+// c++ header
+#include <stdexcept>
+
 // Athena++ headers
 #include "hydro_srcterms.hpp"
 #include "../../athena.hpp"
@@ -71,6 +74,12 @@ void HydroSourceTerms::CoriolisXYZ(const Real dt,const AthenaArray<Real> *flux,
           omega1 = sin(theta)*cos(phi)*omegax_ + sin(theta)*sin(phi)*omegay_ + cos(theta)*omegaz_;
           omega2 = cos(theta)*cos(phi)*omegax_ + cos(theta)*sin(phi)*omegay_ - sin(theta)*omegaz_;
           omega3 = - sin(phi)*omegax_ + cos(phi)*omegay_;
+        } else if (COORDINATE_SYSTEM == "spherical_latlon") {
+          omega1 = - sin(phi)*omegax_ + cos(phi)*omegay_;
+          omega2 = - sin(theta)*cos(phi)*omegax_ - sin(theta)*sin(phi)*omegay_ + cos(theta)*omegaz_;
+          omega3 = cos(theta)*cos(phi)*omegax_ + cos(theta)*sin(phi)*omegay_ + sin(theta)*omegaz_;
+        } else {
+          throw std::runtime_error("unrecognized coordinate...");
         }
 
         Real m1 = cons(IM1, k, j, i),
@@ -78,7 +87,8 @@ void HydroSourceTerms::CoriolisXYZ(const Real dt,const AthenaArray<Real> *flux,
              m3 = cons(IM3, k, j, i);
         cons(IM1, k, j, i) += 2. * dt * (omega3 * m2 - omega2 * m3);
         cons(IM2, k, j, i) += 2. * dt * (omega1 * m3 - omega3 * m1);
-        cons(IM3, k, j, i) += 2. * dt * (omega2 * m1 - omega1 * m2);
+        if (pmb->ke > pmb->ks) // 3d
+          cons(IM3, k, j, i) += 2. * dt * (omega2 * m1 - omega1 * m2);
       }
     }}
   }

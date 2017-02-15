@@ -119,7 +119,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
           int err = _root(p1, 0.5 * p1, 1., &p1, hs);
 
           if (err != 0)
-            throw std::runtime_error("FALTAL ERROR: HS94 hydrostatic integration not converge");
+            throw std::runtime_error("FATAL ERROR: HS94 hydrostatic integration not converge");
         }
         Real t1 = hs.GetTempEq(theta, p1);
         phydro->w(IDN,k,j,i) = p1 / (hs.GetRgas() * t1);

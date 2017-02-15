@@ -33,6 +33,9 @@ public:
   Real GetOmega1() const {return omega1_;}
   Real GetOmega2() const {return omega2_;}
   Real GetOmega3() const {return omega3_;}
+  Real GetOmegaX() const {return omegax_;}
+  Real GetOmegaY() const {return omegay_;}
+  Real GetOmegaZ() const {return omegaz_;}
 
   // data
   bool hydro_sourceterms_defined;
