@@ -355,7 +355,7 @@ void SphericalLatlon::CoordSrcTerms(const Real dt, const AthenaArray<Real> *flux
               + cos(x2f(j+1))*flux[X2DIR](IM1,k,j+1,i));
         }
         else {
-          Real m_ph = prim(IDN,k,j,i) * prim(IM3,k,j,i) * prim(IM2,k,j,i);
+          Real m_ph = prim(IDN,k,j,i) * prim(IM1,k,j,i) * prim(IM2,k,j,i);
           if (MAGNETIC_FIELDS_ENABLED) {
             m_ph -= bcc(IB3,k,j,i) * bcc(IB2,k,j,i);
           }

@@ -29,7 +29,7 @@ x1max      = 6.283185307179586      # maximum value of X1
 ix1_bc     = periodic  # inner-X1 boundary flag
 ox1_bc     = periodic  # inner-X1 boundary flag
 
-nx2        = 128        # Number of zones in X2-direction (latitude)
+nx2        = 128      # Number of zones in X2-direction (latitude)
 x2min      = -1.570796327     # minimum value of X2
 x2max      =  1.570796327     # maximum value of X2
 ix2_bc     = reflecting # inner-X2 boundary flag
@@ -47,10 +47,8 @@ nx2       = 32
 nx3       = 1
 
 <hydro>
-coriolis_accz = 7.27E-5
+coriolis_accz = 7.292E-5
 
 <problem>
-iprob = 1
-amp   = 0.01
-drat  = 2.0
-vflow = 0.5
+umax  = 80.
+phim  = 98061.6
