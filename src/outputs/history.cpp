@@ -19,6 +19,7 @@
 // Athena++ headers
 #include "../athena.hpp"
 #include "../athena_arrays.hpp"
+#include "../athena_math.hpp"   // _sqr
 #include "../globals.hpp"
 #include "../coordinates/coordinates.hpp"
 #include "../hydro/hydro.hpp"
@@ -68,20 +69,19 @@ void HistoryOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool flag)
         Real& u_my = phyd->u(IM2,k,j,i);
         Real& u_mz = phyd->u(IM3,k,j,i);
 
-        //std::cout << u_mz << " " << phyd->w(IVZ,k,j,i) << std::endl;
-
         data_sum[0] += vol(i)*u_d;
         data_sum[1] += vol(i)*u_mx;
         data_sum[2] += vol(i)*u_my;
         data_sum[3] += vol(i)*u_mz;
-        data_sum[4] += vol(i)*0.5*SQR(u_mx)/u_d;
-        data_sum[5] += vol(i)*0.5*SQR(u_my)/u_d;
-        data_sum[6] += vol(i)*0.5*SQR(u_mz)/u_d;
+        data_sum[4] += vol(i)*0.5*_sqr(u_mx)/u_d;
+        data_sum[5] += vol(i)*0.5*_sqr(u_my)/u_d;
+        data_sum[6] += vol(i)*0.5*_sqr(u_mz)/u_d;
 
         if (NON_BAROTROPIC_EOS) {
           Real& u_e = phyd->u(IEN,k,j,i);;
           data_sum[7] += vol(i)*u_e;
         }
+
         if (MAGNETIC_FIELDS_ENABLED) {
           Real& bcc1 = pfld->bcc(IB1,k,j,i);
           Real& bcc2 = pfld->bcc(IB2,k,j,i);

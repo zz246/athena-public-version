@@ -38,6 +38,7 @@ for t in range(433, 434):
   ax.contour(X, Y, vorticity, clines, colors = 'k', linewidths = 1.)
   ax.set_ylim((10., 80.))
   ax.set_aspect(2.)
+  ax.set_title('144. hours')
 
-show()
+savefig('galewsky04-0214c.png', bbox_inches = 'tight')
 
