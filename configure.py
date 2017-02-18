@@ -77,7 +77,7 @@ parser.add_argument('--flux',
 # --order=[name] argument
 parser.add_argument('--order',
     default='plm',
-    choices=['plm'],
+    choices=['plm', 'weno3'],
     help='select spatial reconstruction algorithm')
 
 # --fint=[name] argument

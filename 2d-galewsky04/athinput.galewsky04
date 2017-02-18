@@ -41,10 +41,10 @@ x3max      = 6.372E6    # maximum value of X3
 ix3_bc     = periodic   # inner-X3 boundary flag
 ox3_bc     = periodic   # inner-X3 boundary flag
 
-<meshblock>
-nx1       = 32
-nx2       = 16
-nx3       = 1
+#<meshblock>
+#nx1       = 64
+#nx2       = 32
+#nx3       = 1
 
 <hydro>
 coriolis_accz = 7.292E-5
