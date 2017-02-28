@@ -41,7 +41,7 @@ public:
   bool hydro_sourceterms_defined;
 
   // functions
-  void AddHydroSourceTerms(const Real time, const Real dt, const AthenaArray<Real> *flx,
+  void AddHydroSourceTerms(const Real time, const Real dt, const int step, const AthenaArray<Real> *flx,
     const AthenaArray<Real> &p, const AthenaArray<Real> &b, AthenaArray<Real> &c);
   void PointMass(const Real dt, const AthenaArray<Real> *flx,const AthenaArray<Real> &p,
     AthenaArray<Real> &c);

@@ -414,11 +414,11 @@ enum TaskStatus TimeIntegratorTaskList::HydroSourceTerms(MeshBlock *pmb, int ste
   // *** this must be changed for the RK3 integrator
   if(step == 1) {
     time=pmb->pmy_mesh->time;
-    ph->psrc->AddHydroSourceTerms(time,dt,ph->flux,ph->w,pf->bcc,ph->u1);
+    ph->psrc->AddHydroSourceTerms(time,dt,step,ph->flux,ph->w,pf->bcc,ph->u1);
   } else if(step == 2) {
     if      (integrator == "vl2") time=pmb->pmy_mesh->time + 0.5*pmb->pmy_mesh->dt;
     else if (integrator == "rk2") time=pmb->pmy_mesh->time +     pmb->pmy_mesh->dt;
-    ph->psrc->AddHydroSourceTerms(time,dt,ph->flux,ph->w1,pf->bcc1,ph->u);
+    ph->psrc->AddHydroSourceTerms(time,dt,step,ph->flux,ph->w1,pf->bcc1,ph->u);
   } else {
     return TASK_FAIL;
   }

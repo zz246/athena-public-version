@@ -86,7 +86,7 @@ HydroSourceTerms::~HydroSourceTerms()
 //! \fn void HydroSourceTerms::AddHydroSourceTerms
 //  \brief Adds source terms to conserved variables
 
-void HydroSourceTerms::AddHydroSourceTerms(const Real time, const Real dt,
+void HydroSourceTerms::AddHydroSourceTerms(const Real time, const Real dt, const int step,
      const AthenaArray<Real> *flux, const AthenaArray<Real> &prim,
      const AthenaArray<Real> &bcc, AthenaArray<Real> &cons)
 {
@@ -111,7 +111,7 @@ void HydroSourceTerms::AddHydroSourceTerms(const Real time, const Real dt,
 
   //  user-defined source terms
   if (UserSourceTerm != NULL)
-    UserSourceTerm(pmb, time,dt,prim,bcc,cons);
+    UserSourceTerm(pmb,time,dt,step,prim,bcc,cons);
 
   return;
 }

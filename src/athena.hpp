@@ -68,7 +68,7 @@ typedef void (*BValFunc_t)(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &
   FaceField &b, Real time, Real dt, int is, int ie, int js, int je, int ks, int ke);
 typedef int (*AMRFlagFunc_t)(MeshBlock *pmb);
 typedef Real (*MeshGenFunc_t)(Real x, RegionSize rs);
-typedef void (*SrcTermFunc_t)(MeshBlock *pmb, const Real time, const Real dt,
+typedef void (*SrcTermFunc_t)(MeshBlock *pmb, const Real time, const Real dt, const int step,
   const AthenaArray<Real> &prim, const AthenaArray<Real> &bcc, AthenaArray<Real> &cons);
 typedef Real (*TimeStepFunc_t)(MeshBlock *pmb);
 typedef Real (*HistoryOutputFunc_t)(MeshBlock *pmb, int iout);
