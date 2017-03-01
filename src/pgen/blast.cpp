@@ -58,13 +58,17 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
     y0 = x2_0;
     z0 = x3_0;
   } else if (COORDINATE_SYSTEM == "cylindrical") {
-    x0 = x1_0*std::cos(x2_0);
-    y0 = x1_0*std::sin(x2_0);
+    x0 = x1_0*cos(x2_0);
+    y0 = x1_0*sin(x2_0);
     z0 = x3_0;
   } else if (COORDINATE_SYSTEM == "spherical_polar") {
-    x0 = x1_0*std::sin(x2_0)*std::cos(x3_0);
-    y0 = x1_0*std::sin(x2_0)*std::sin(x3_0);
-    z0 = x1_0*std::cos(x2_0);
+    x0 = x1_0*sin(x2_0)*cos(x3_0);
+    y0 = x1_0*sin(x2_0)*sin(x3_0);
+    z0 = x1_0*cos(x2_0);
+  } else if (COORDINATE_SYSTEM == "spherical_latlon") {
+    x0 = x3_0*cos(x2_0)*cos(x1_0);
+    y0 = x3_0*cos(x2_0)*sin(x1_0);
+    z0 = x3_0*sin(x2_0);
   }
 
   // setup uniform ambient medium with spherical over-pressured region
@@ -78,14 +82,19 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
       Real z = pcoord->x3v(k);
       rad = sqrt(SQR(x - x0) + SQR(y - y0) + SQR(z - z0));
     } else if (COORDINATE_SYSTEM == "cylindrical") {
-      Real x = pcoord->x1v(i)*std::cos(pcoord->x2v(j));
-      Real y = pcoord->x1v(i)*std::sin(pcoord->x2v(j));
+      Real x = pcoord->x1v(i)*cos(pcoord->x2v(j));
+      Real y = pcoord->x1v(i)*sin(pcoord->x2v(j));
       Real z = pcoord->x3v(k);
       rad = sqrt(SQR(x - x0) + SQR(y - y0) + SQR(z - z0));
     } else if (COORDINATE_SYSTEM == "spherical_polar") {
-      Real x = pcoord->x1v(i)*std::sin(pcoord->x2v(j))*std::cos(pcoord->x3v(k));
-      Real y = pcoord->x1v(i)*std::sin(pcoord->x2v(j))*std::sin(pcoord->x3v(k));
-      Real z = pcoord->x1v(i)*std::cos(pcoord->x2v(j));
+      Real x = pcoord->x1v(i)*sin(pcoord->x2v(j))*cos(pcoord->x3v(k));
+      Real y = pcoord->x1v(i)*sin(pcoord->x2v(j))*sin(pcoord->x3v(k));
+      Real z = pcoord->x1v(i)*cos(pcoord->x2v(j));
+      rad = sqrt(SQR(x - x0) + SQR(y - y0) + SQR(z - z0));
+    } else if (COORDINATE_SYSTEM == "spherical_latlon") {
+      Real x = pcoord->x3v(k)*cos(pcoord->x2v(j))*cos(pcoord->x1v(i));
+      Real y = pcoord->x3v(k)*cos(pcoord->x2v(j))*sin(pcoord->x1v(i));
+      Real z = pcoord->x3v(k)*sin(pcoord->x2v(j));
       rad = sqrt(SQR(x - x0) + SQR(y - y0) + SQR(z - z0));
     }
     Real den = da;
@@ -94,8 +103,8 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
         den = drat*da;
       } else {   // add smooth ramp in density
         Real f = (rad-rin) / (rout-rin);
-        Real log_den = (1.0-f) * std::log(drat*da) + f * std::log(da);
-        den = std::exp(log_den);
+        Real log_den = (1.0-f) * log(drat*da) + f * log(da);
+        den = exp(log_den);
       }
     }
 
@@ -110,8 +119,8 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
           pres = prat*pa;
         } else {  // add smooth ramp in pressure
           Real f = (rad-rin) / (rout-rin);
-          Real log_pres = (1.0-f) * std::log(prat*pa) + f * std::log(pa);
-          pres = std::exp(log_pres);
+          Real log_pres = (1.0-f) * log(prat*pa) + f * log(pa);
+          pres = exp(log_pres);
         }
       }
       phydro->u(IEN,k,j,i) = pres/gm1;
@@ -172,13 +181,17 @@ void Mesh::UserWorkAfterLoop(ParameterInput *pin)
     y0 = x2_0;
     z0 = x3_0;
   } else if (COORDINATE_SYSTEM == "cylindrical") {
-    x0 = x1_0*std::cos(x2_0);
-    y0 = x1_0*std::sin(x2_0);
+    x0 = x1_0*cos(x2_0);
+    y0 = x1_0*sin(x2_0);
     z0 = x3_0;
   } else if (COORDINATE_SYSTEM == "spherical_polar") {
-    x0 = x1_0*std::sin(x2_0)*std::cos(x3_0);
-    y0 = x1_0*std::sin(x2_0)*std::sin(x3_0);
-    z0 = x1_0*std::cos(x2_0);
+    x0 = x1_0*sin(x2_0)*cos(x3_0);
+    y0 = x1_0*sin(x2_0)*sin(x3_0);
+    z0 = x1_0*cos(x2_0);
+  } else if (COORDINATE_SYSTEM == "spherical_latlon") {
+    x0 = x3_0*cos(x2_0)*cos(x1_0);
+    y0 = x3_0*cos(x2_0)*sin(x1_0);
+    z0 = x3_0*sin(x2_0);
   }
 
   // find indices of the center
@@ -277,15 +290,19 @@ void Mesh::UserWorkAfterLoop(ParameterInput *pin)
         ym = x2m;
         zm = x3m;
       } else if (COORDINATE_SYSTEM == "cylindrical") {
-        xm = x1m*std::cos(x2m);
-        ym = x1m*std::sin(x2m);
+        xm = x1m*cos(x2m);
+        ym = x1m*sin(x2m);
         zm = x3m;
       } else if (COORDINATE_SYSTEM == "spherical_polar") {
-        xm = x1m*std::sin(x2m)*std::cos(x3m);
-        ym = x1m*std::sin(x2m)*std::sin(x3m);
-        zm = x1m*std::cos(x2m);
+        xm = x1m*sin(x2m)*cos(x3m);
+        ym = x1m*sin(x2m)*sin(x3m);
+        zm = x1m*cos(x2m);
+      } else if (COORDINATE_SYSTEM == "spherical_latlon") {
+        xm = x3m*cos(x2m)*cos(x1m);
+        ym = x3m*cos(x2m)*sin(x1m);
+        zm = x3m*sin(x2m);
       }
-      Real rad = std::sqrt(SQR(xm-x0)+SQR(ym-y0)+SQR(zm-z0));
+      Real rad = sqrt(SQR(xm-x0)+SQR(ym-y0)+SQR(zm-z0));
       if(rad>rmax) rmax=rad;
       if(rad<rmin) rmin=rad;
       rave+=rad;
@@ -300,13 +317,16 @@ void Mesh::UserWorkAfterLoop(ParameterInput *pin)
   Real dx1c = pblock->pcoord->dx1f(ic);
   Real  x2c = pblock->pcoord->x2v(jc);
   Real dx2c = pblock->pcoord->dx2f(jc);
+  Real  x3c = pblock->pcoord->x3v(kc);
   Real dx3c = pblock->pcoord->dx3f(kc);
   if (COORDINATE_SYSTEM == "cartesian") {
     dr_max = std::max(std::max(dx1c, dx2c), dx3c);
   } else if (COORDINATE_SYSTEM == "cylindrical") {
     dr_max = std::max(std::max(dx1c, x1c*dx2c), dx3c);
   } else if (COORDINATE_SYSTEM == "spherical_polar") {
-    dr_max = std::max(std::max(dx1c, x1c*dx2c), x1c*std::sin(x2c)*dx3c);
+    dr_max = std::max(std::max(dx1c, x1c*dx2c), x1c*sin(x2c)*dx3c);
+  } else if (COORDINATE_SYSTEM == "spherical_latlon") {
+    dr_max = std::max(std::max(dx3c, x3c*dx2c), x3c*cos(x2c)*dx1c);
   }
   Real deform=(rmax-rmin)/dr_max;
 

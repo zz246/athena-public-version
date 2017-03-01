@@ -96,7 +96,8 @@ void HydroSourceTerms::AddHydroSourceTerms(const Real time, const Real dt, const
   if (gm_ != 0.0) PointMass(dt, flux, prim, cons);
 
   // constant acceleration (e.g. for RT instability)
-  if (g1_ != 0.0 || g2_ != 0.0 || g3_ != 0.0) ConstantAcceleration(dt, flux, prim,cons);
+  if (g1_ != 0.0 || g2_ != 0.0 || g3_ != 0.0)
+    ConstantAcceleration(dt, flux, prim,cons);
 
   // coriolis acceleration in the axial direction
   if (omega1_ != 0.0 || omega2_ != 0.0 || omega3_ != 0.0)
@@ -106,12 +107,12 @@ void HydroSourceTerms::AddHydroSourceTerms(const Real time, const Real dt, const
   if (omegax_ != 0.0 || omegay_ != 0.0 || omegaz_ != 0.0)
     CoriolisXYZ(dt, flux, prim, cons);
 
-  // Add new source terms here
-  // MyNewSourceTerms()
-
   //  user-defined source terms
   if (UserSourceTerm != NULL)
     UserSourceTerm(pmb,time,dt,step,prim,bcc,cons);
+
+  // Add new source terms here
+  // MyNewSourceTerms()
 
   return;
 }

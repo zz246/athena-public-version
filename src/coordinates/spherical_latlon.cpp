@@ -219,7 +219,7 @@ void SphericalLatlon::Face1Area(const int k, const int j, const int il, const in
 {
 #pragma simd
   for (int i=il; i<=iu; ++i){
-    // area3 = dr r dtheta = d(r^2/2) dtheta
+    // area1 = dr r dtheta = d(r^2/2) dtheta
     area(i) = 0.5*(_sqr(x3f(k+1)) - _sqr(x3f(k)))*dx2f(j);
   }
   return;
@@ -241,7 +241,7 @@ void SphericalLatlon::Face3Area(const int k, const int j, const int il, const in
 {
 #pragma simd
   for (int i=il; i<=iu; ++i){
-    // area1 = r^2 cos[theta] dtheta dphi = r^2 d(sin[theta]) dphi
+    // area3 = r^2 cos[theta] dtheta dphi = r^2 d(sin[theta]) dphi
     area(i) = _sqr(x3f(k))*(sin(x2f(j+1)) - sin(x2f(j)))*dx1f(i); 
   }
   return;
@@ -321,15 +321,17 @@ void SphericalLatlon::CoordSrcTerms(const Real dt, const AthenaArray<Real> *flux
         Real dvol  = 1./3. * (_cub(x3f(k+1)) - _cub(x3f(k)));
         u(IM3,k,j,i) += dt * darea/dvol * m_kk;
 
-        /* src_2 = -< M_{theta r} ><1/r> 
-        u(IM2,k,j,i) -= dt * dx3f(k)/((x3f(k) + x3f(k+1)) * dvol) *
-          (_sqr(x3f(k)) * flux[X3DIR](IM2,k,j,i)
-         + _sqr(x3f(k+1)) * flux[X3DIR](IM2,k+1,j,i));
+        if (pmy_block->block_size.nx3 > 1) {
+          // src_2 = -< M_{theta r} ><1/r> 
+          u(IM2,k,j,i) -= dt * dx3f(k)/((x3f(k) + x3f(k+1)) * dvol) *
+            (_sqr(x3f(k)) * flux[X3DIR](IM2,k,j,i)
+           + _sqr(x3f(k+1)) * flux[X3DIR](IM2,k+1,j,i));
 
-        // src_1 = -< M_{phi r} ><1/r> 
-        u(IM1,k,j,i) -= dt * dx3f(k)/((x3f(k) + x3f(k+1)) * dvol) *
-          (_sqr(x3f(k)) * flux[X3DIR](IM1,k,j,i)
-         + _sqr(x3f(k+1)) * flux[X3DIR](IM1,k+1,j,i));*/
+          // src_1 = -< M_{phi r} ><1/r> 
+          u(IM1,k,j,i) -= dt * dx3f(k)/((x3f(k) + x3f(k+1)) * dvol) *
+            (_sqr(x3f(k)) * flux[X3DIR](IM1,k,j,i)
+           + _sqr(x3f(k+1)) * flux[X3DIR](IM1,k+1,j,i));
+        }
 
         // src_2 = < M_{phi phi} ><cot theta/r>
         Real m_pp = prim(IDN,k,j,i)*_sqr(prim(IM1,k,j,i));
