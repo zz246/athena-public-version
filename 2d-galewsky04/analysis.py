@@ -3,7 +3,7 @@ from netCDF4 import *
 from pylab import *
 
 radius = 6.371E6
-data = Dataset('galewsky04-0214b.nc', 'r')
+data = Dataset('galewsky04-0228a.nc', 'r')
 
 time = data.variables['time'][:]
 lon = data.variables['x1'][:]
@@ -22,7 +22,7 @@ vorticity = zeros((nlat - 2, nlon - 2))
 
 X, Y = meshgrid(lon[1:-1] * 180./pi, lat[1:-1] * 180./pi)
 
-for t in range(433, 434):
+for t in range(ntime - 1, ntime):
   print time[t]/3600.
 #for t in range(1):
   figure(1, figsize = (12, 8))
@@ -34,12 +34,14 @@ for t in range(433, 434):
         - (cos(lat[j+1])*uwind[t, j + 1, i] - cos(lat[j-1])*uwind[t, j - 1, i]) / (lat[j + 1] - lat[j - 1]))
   print vorticity.max()
   print vorticity.min()
-  clines = hstack((arange(-16.E-5, 0, 2.E-5), arange(2.E-5, 16.E-5, 2.E-5)))
+  clines = hstack((arange(-1.1E-4, -3.E-5, 2.E-5), arange(5.E-5, 1.5E-4, 2.E-5)))
+  clines = [-1.1E-4, -0.9E-4, -0.7E-4, -0.5E-4, -0.3E-4, -0.1E-4, 
+            0.1E-4, 0.3E-4, 0.5E-4, 0.7E-4, 0.9E-4, 1.1E-4, 1.3E-4]
+  print clines
   ax.contour(X, Y, vorticity, clines, colors = 'k', linewidths = 1.)
-  ax.set_ylim((10., 80.))
+  ax.set_ylim((0., 90.))
   #ax.set_aspect(2.)
   ax.set_aspect('equal')
   ax.set_title('144. hours')
 
-savefig('galewsky04-0214b.png', bbox_inches = 'tight')
-
+savefig('galewsky04-0228a.png', bbox_inches = 'tight')
