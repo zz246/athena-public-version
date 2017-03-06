@@ -20,12 +20,13 @@ from netCDF4 import Dataset
 #folder      = '/home/chengli/athena-public-version/2d-galewsky04/'
 #problem     = 'galewsky04'
 #nrb1, nrb2, nrb3 = 4, 4, 1
-#bx1, bx2, bx3    = 64, 32, 1
+#bx1, bx2, bx3    = 128, 64, 1
 
-folder      = '/home/chengli/athena-public-version/2d-swbeta/'
-problem     = 'swbeta'
+folder      = '/home/chengli/athena-public-version/2d-showman06/'
+problem     = 'showman06'
 nrb1, nrb2, nrb3 = 4, 4, 1
-bx1, bx2, bx3    = 64, 32, 1
+#bx1, bx2, bx3    = 64, 32, 1
+bx1, bx2, bx3    = 128, 64, 1
 
 num_blocks  = nrb1 * nrb2 * nrb3
 

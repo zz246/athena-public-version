@@ -37,7 +37,7 @@ inline Real interp_weno3(Real phim1, Real phi, Real phip1) {
 //! \fn Reconstruction::ReconstructionFuncX1()
 //  \brief 
 
-void Reconstruction::ConstructX1(const int k, const int j,
+void Reconstruction::HighResFuncX1(const int k, const int j,
   const int il, const int iu,
   const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
   AthenaArray<Real> &ql, AthenaArray<Real> &qr)
@@ -59,7 +59,7 @@ void Reconstruction::ConstructX1(const int k, const int j,
 //! \fn Reconstruction::ReconstructionFuncX2()
 //  \brief 
 
-void Reconstruction::ConstructX2(const int k, const int j,
+void Reconstruction::HighResFuncX2(const int k, const int j,
   const int il, const int iu,
   const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
   AthenaArray<Real> &ql, AthenaArray<Real> &qr)
@@ -81,7 +81,7 @@ void Reconstruction::ConstructX2(const int k, const int j,
 //! \fn Reconstruction::ReconstructionFuncX3()
 //  \brief 
 
-void Reconstruction::ConstructX3(const int k, const int j,
+void Reconstruction::HighResFuncX3(const int k, const int j,
   const int il, const int iu,
   const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
   AthenaArray<Real> &ql, AthenaArray<Real> &qr)

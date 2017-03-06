@@ -29,7 +29,7 @@
 //  \brief Calculate Hydrodynamic Fluxes using the Riemann solver
 
 void Hydro::CalculateFluxes(AthenaArray<Real> &w, FaceField &b,
-                            AthenaArray<Real> &bcc, int reconstruct_order)
+                            AthenaArray<Real> &bcc, int step)
 {
   MeshBlock *pmb=pmy_block;
   AthenaArray<Real> &x1flux=flux[X1DIR];
@@ -83,10 +83,10 @@ void Hydro::CalculateFluxes(AthenaArray<Real> &w, FaceField &b,
     for (int j=jl; j<=ju; ++j){
 
       // reconstruct L/R states
-      if (reconstruct_order == 1) {
+      if ((step == 1) && HYDRO_TIME_INTEGRATOR == "vl2") {
         pmb->precon->DonorCellX1(k,j,is,ie+1,w,bcc,wl,wr);
       } else {
-        pmb->precon->PiecewiseLinearX1(k,j,is,ie+1,w,bcc,wl,wr);
+        pmb->precon->HighResFuncX1(k,j,is,ie+1,w,bcc,wl,wr);
       }
 
       // compute fluxes
@@ -135,10 +135,10 @@ void Hydro::CalculateFluxes(AthenaArray<Real> &w, FaceField &b,
       for (int j=js; j<=je+1; ++j){
 
         // reconstruct L/R states at j
-        if (reconstruct_order == 1) {
+        if ((step == 1) && HYDRO_TIME_INTEGRATOR == "vl2") {
           pmb->precon->DonorCellX2(k,j,il,iu,w,bcc,wl,wr);
         } else {
-          pmb->precon->PiecewiseLinearX2(k,j,il,iu,w,bcc,wl,wr);
+          pmb->precon->HighResFuncX2(k,j,il,iu,w,bcc,wl,wr);
         }
 
         // compute fluxes at j
@@ -184,10 +184,10 @@ void Hydro::CalculateFluxes(AthenaArray<Real> &w, FaceField &b,
       for (int j=jl; j<=ju; ++j){
 
         // reconstruct L/R states at k
-        if (reconstruct_order == 1) {
+        if ((step == 1) && HYDRO_TIME_INTEGRATOR == "vl2") {
           pmb->precon->DonorCellX3(k,j,il,iu,w,bcc,wl,wr);
         } else {
-          pmb->precon->PiecewiseLinearX3(k,j,il,iu,w,bcc,wl,wr);
+          pmb->precon->HighResFuncX3(k,j,il,iu,w,bcc,wl,wr);
         }
 
         // compute fluxes at k

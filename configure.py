@@ -83,7 +83,7 @@ parser.add_argument('--order',
 # --fint=[name] argument
 parser.add_argument('--fint',
     default='vl2',
-    choices=['vl2'],
+    choices=['vl2', 'rk2'],
     help='select hydro time-integration algorithm')
 
 # -b argument

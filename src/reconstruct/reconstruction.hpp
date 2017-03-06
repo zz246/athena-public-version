@@ -24,21 +24,6 @@ public:
   Reconstruction(MeshBlock *pmb, ParameterInput *pin);
   ~Reconstruction();
 
-  void PiecewiseLinearX1(const int k, const int j,
-    const int il, const int iu,
-    const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
-    AthenaArray<Real> &ql, AthenaArray<Real> &qr);
-
-  void PiecewiseLinearX2(const int k, const int j,
-    const int il, const int iu,
-    const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
-    AthenaArray<Real> &ql, AthenaArray<Real> &qr);
-
-  void PiecewiseLinearX3(const int k, const int j,
-    const int il, const int iu,
-    const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
-    AthenaArray<Real> &ql, AthenaArray<Real> &qr);
-
   void DonorCellX1(const int k, const int j,
     const int il, const int iu,
     const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
@@ -54,23 +39,20 @@ public:
     const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
     AthenaArray<Real> &ql, AthenaArray<Real> &qr);
 
-  /* unfinished WENO methods
-   *
-   * void ConstructX1(const int k, const int j,
+  void HighResFuncX1(const int k, const int j,
     const int il, const int iu,
     const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
     AthenaArray<Real> &ql, AthenaArray<Real> &qr);
 
-  void ConstructX2(const int k, const int j,
+  void HighResFuncX2(const int k, const int j,
     const int il, const int iu,
     const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
     AthenaArray<Real> &ql, AthenaArray<Real> &qr);
 
-  void ConstructX3(const int k, const int j,
+  void HighResFuncX3(const int k, const int j,
     const int il, const int iu,
     const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
     AthenaArray<Real> &ql, AthenaArray<Real> &qr);
-  */
 
 private:
   MeshBlock *pmy_block_;  // ptr to MeshBlock containing this Reconstruction

@@ -36,12 +36,14 @@ for t in range(ntime - 1, ntime):
   print vorticity.min()
   clines = hstack((arange(-1.1E-4, -3.E-5, 2.E-5), arange(5.E-5, 1.5E-4, 2.E-5)))
   clines = [-1.1E-4, -0.9E-4, -0.7E-4, -0.5E-4, -0.3E-4, -0.1E-4, 
-            0.1E-4, 0.3E-4, 0.5E-4, 0.7E-4, 0.9E-4, 1.1E-4, 1.3E-4]
+            0.1E-4, 0.3E-4, 0.5E-4, 0.7E-4, 0.9E-4, 1.1E-4, 1.3E-4, 1.5E-4]
   print clines
   ax.contour(X, Y, vorticity, clines, colors = 'k', linewidths = 1.)
+  #ax.contourf(X, Y, vorticity, clines)
   ax.set_ylim((0., 90.))
   #ax.set_aspect(2.)
   ax.set_aspect('equal')
   ax.set_title('144. hours')
 
+#show()
 savefig('galewsky04-0228a.png', bbox_inches = 'tight')
