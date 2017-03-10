@@ -42,8 +42,6 @@ void Reconstruction::HighResFuncX1(const int k, const int j,
   const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
   AthenaArray<Real> &ql, AthenaArray<Real> &qr)
 {
-  Coordinates *pco = pmy_block_->pcoord;
-
   for (int n=0; n<NHYDRO; ++n) {
 #pragma simd
     for (int i=il; i<=iu; ++i){
@@ -64,8 +62,6 @@ void Reconstruction::HighResFuncX2(const int k, const int j,
   const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
   AthenaArray<Real> &ql, AthenaArray<Real> &qr)
 {
-  Coordinates *pco = pmy_block_->pcoord;
-
   for (int n=0; n<NHYDRO; ++n) {
 #pragma simd
     for (int i=il; i<=iu; ++i){
@@ -86,8 +82,6 @@ void Reconstruction::HighResFuncX3(const int k, const int j,
   const AthenaArray<Real> &q, const AthenaArray<Real> &bcc,
   AthenaArray<Real> &ql, AthenaArray<Real> &qr)
 {
-  Coordinates *pco = pmy_block_->pcoord;
-
   for (int n=0; n<NHYDRO; ++n) {
 #pragma simd
     for (int i=il; i<=iu; ++i){

@@ -285,7 +285,7 @@ else:
   elif args['eos'] == 'isothermal':
     definitions['NWAVE_VALUE'] = '4'
   elif args['eos'] == 'shallow_water':
-    definitions['NWAVE_VALUE'] = '3'
+    definitions['NWAVE_VALUE'] = '4'
     makefile_options['RSOLVER_FILE'] += '_shallow_water'
 
 # -s, -g, and -t arguments

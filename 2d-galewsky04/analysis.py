@@ -3,7 +3,7 @@ from netCDF4 import *
 from pylab import *
 
 radius = 6.371E6
-data = Dataset('galewsky04-0228a.nc', 'r')
+data = Dataset('galewsky04-0308a.nc', 'r')
 
 time = data.variables['time'][:]
 lon = data.variables['x1'][:]
@@ -46,4 +46,4 @@ for t in range(ntime - 1, ntime):
   ax.set_title('144. hours')
 
 #show()
-savefig('galewsky04-0228a.png', bbox_inches = 'tight')
+savefig('galewsky04-0308a.png', bbox_inches = 'tight')

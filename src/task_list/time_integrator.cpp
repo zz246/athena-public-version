@@ -35,7 +35,8 @@ TimeIntegratorTaskList::TimeIntegratorTaskList(ParameterInput *pin, Mesh *pm)
   // a,b=(1-a),and c are weights that are different for each step and each integrator
   // These are stored as: time_int_wght1 = a, time_int_wght2 = b, time_int_wght3 = c
 
-  integrator = pin->GetOrAddString("time","integrator","vl2");
+  //integrator = pin->GetOrAddString("time","integrator","vl2");
+  integrator = HYDRO_TIME_INTEGRATOR;
 
   // second-order van Leer integrator (Gardiner & Stone, NewA 14, 139 2009)
   if (integrator == "vl2") {
@@ -355,12 +356,17 @@ enum TaskStatus TimeIntegratorTaskList::HydroIntegrate(MeshBlock *pmb, int step)
   Hydro *ph=pmb->phydro;
   Field *pf=pmb->pfield;
 
-  if(step == 1) {
+  if (step == 1) {
     ph->AddFluxDivergenceToAverage(ph->u,ph->u,ph->w,pf->bcc,step_wghts[0],ph->u1);
     return TASK_NEXT;
   }
 
-  if((step == 2) && (integrator == "vl2")) {
+  if (step == 2) {
+   ph->AddFluxDivergenceToAverage(ph->u,ph->u1,ph->w1,pf->bcc1,step_wghts[1],ph->u);
+   return TASK_NEXT;
+  }
+
+  /*if((step == 2) && (integrator == "vl2")) {
     ph->AddFluxDivergenceToAverage(ph->u,ph->u,ph->w1,pf->bcc1,step_wghts[1],ph->u);
     return TASK_NEXT;
   }
@@ -368,7 +374,7 @@ enum TaskStatus TimeIntegratorTaskList::HydroIntegrate(MeshBlock *pmb, int step)
   if((step == 2) && (integrator == "rk2")) {
    ph->AddFluxDivergenceToAverage(ph->u,ph->u1,ph->w1,pf->bcc1,step_wghts[1],ph->u);
    return TASK_NEXT;
-  }
+  }*/
 
   return TASK_FAIL;
 }

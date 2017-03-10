@@ -45,3 +45,7 @@ meshtest.dat
 
 # editor temp files
 *~
+
+# png, nc file
+*.png
+*.nc
