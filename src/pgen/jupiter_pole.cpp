@@ -65,6 +65,9 @@ Real GetZonalWind(Real theta);
 Real SolveFarFieldGeopotential(Real gh0);
 Real GetGeopotential(Real gh0, Real theta);
 void RotatePoleToEquator(Real *theta1, Real *phi1, Real theta0, Real phi0);
+void RotateEquatorToPole(Real *theta1, Real *phi1, Real theta0, Real phi0);
+void SphericalLatlonToCartesian(Real *x, Real *y, Real *z, Real a, Real b, Real c, Real phi, Real theta);
+void CartesianToSphericalLatlon(Real *a, Real *b, Real *c, Real x, Real y, Real z, Real phi, Real theta);
 
 // History output total absolute angular momentum and energy
 Real TotalAbsoluteAngularMomentum(MeshBlock *pm, int iout);
@@ -109,17 +112,20 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
   for (int k = ks; k <= ke; ++k)
     for (int j = js; j <= je; ++j)
       for (int i = is; i <= ie; ++i) {
-        Real theta, phi;
-        RotatePoleToEquator(&theta, &phi, pcoord->x2v(j), pcoord->x1v(i));
-        std::cout << theta << " " << phi << std::endl;
+        Real theta, phi, xx, yy, zz, u1, u2, u3;
+        RotateEquatorToPole(&theta, &phi, pcoord->x2v(j), pcoord->x1v(i));
 
         // setup mean flow
         phydro->u(IDN,k,j,i) = GetGeopotential(gh0, theta);
-        phydro->u(IM1,k,j,i) = phydro->u(IDN,k,j,i) * GetZonalWind(theta);
+
+        SphericalLatlonToCartesian(&xx,&yy,&zz,GetZonalWind(theta),0.,0.,phi,theta);
+        CartesianToSphericalLatlon(&u1,&u2,&u3,zz,xx,yy,pcoord->x1v(i),pcoord->x2v(j));
+        phydro->u(IM1,k,j,i) = phydro->u(IDN,k,j,i) * u1;
+        phydro->u(IM2,k,j,i) = phydro->u(IDN,k,j,i) * u2;
 
         // add pertubation
-        phydro->u(IDN,k,j,i) += 100.*cos(theta)*exp(-_sqr(3.*(phi-M_PI)))
-          * exp(-_sqr(15.*(M_PI/4.-theta)));
+        phydro->u(IDN,k,j,i) += 2400.*cos(theta)*exp(-_sqr(3.*phi))
+          * exp(-_sqr(15.*((Prob::theta1+Prob::theta2)/2.-theta)));
       }
 }
 
@@ -135,7 +141,7 @@ Real GetZonalWind(Real theta)
 
 Real GetGeopotential(Real gh0, Real theta)
 {
-  Real ds = 0.01;
+  Real ds = 0.001;
   for (Real s = - M_PI/2. + ds; s < theta; s += ds) {
     Real f1r = 2.*Prob::omega*sin(s-ds)*Prob::radius,
          f2r = 2.*Prob::omega*sin(s)*Prob::radius;
@@ -171,9 +177,38 @@ Real SolveFarFieldGeopotential(Real gh)
 void RotatePoleToEquator(Real *theta1, Real *phi1, Real theta0, Real phi0)
 {
   *theta1 = asin(cos(theta0)*sin(phi0));
-  *phi1   = acos(sin(theta0)/cos(*theta1));
+  *phi1   = asin(cos(theta0)*cos(phi0)/cos(*theta1));
+}
 
-  if (cos(phi0) < 0.) *phi1 = - *phi1;
+void RotateEquatorToPole(Real *theta1, Real *phi1, Real theta0, Real phi0)
+{
+  *theta1 = asin(cos(theta0)*cos(phi0));
+  *phi1   = asin(sin(theta0)/cos(*theta1));
+
+  if (phi0 < 0. && theta0 > 0.)
+    *phi1 = M_PI - *phi1;
+  if (phi0 < 0. && theta0 < 0.)
+    *phi1 = - *phi1 - M_PI;
+}
+
+void SphericalLatlonToCartesian(
+    Real *x, Real *y, Real *z, 
+    Real a, Real b, Real c,
+    Real phi, Real theta)
+{
+  *x = -a*sin(phi) - b*sin(theta)*cos(phi) + c*cos(theta)*cos(phi);
+  *y = a*cos(phi) - b*sin(theta)*sin(phi) + c*cos(theta)*sin(phi);
+  *z = b*cos(theta) + c*sin(theta);
+}
+
+void CartesianToSphericalLatlon(
+    Real *a, Real *b, Real *c, 
+    Real x, Real y, Real z, 
+    Real phi, Real theta)
+{
+  *a = -x*sin(phi) + y*cos(phi);
+  *b = -x*sin(theta)*cos(phi) - y*sin(theta)*sin(phi) + z*cos(theta);
+  *c = x*cos(theta)*cos(phi) + y*cos(theta)*sin(phi) + z*sin(theta);
 }
 
 Real TotalAbsoluteAngularMomentum(MeshBlock *pmb, int iout)

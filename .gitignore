@@ -49,3 +49,6 @@ meshtest.dat
 # png, nc file
 *.png
 *.nc
+
+# log file
+log.*
