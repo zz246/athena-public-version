@@ -178,6 +178,11 @@ void RotatePoleToEquator(Real *theta1, Real *phi1, Real theta0, Real phi0)
 {
   *theta1 = asin(cos(theta0)*sin(phi0));
   *phi1   = asin(cos(theta0)*cos(phi0)/cos(*theta1));
+
+  if (theta0 < 0. && (phi0 > -M_PI/2. && phi0 < M_PI/2.))
+    *phi1 = M_PI - *phi1;
+  if (theta0 < 0. && (phi0 < -M_PI/2. || phi0 > M_PI/2.))
+    *phi1 = - M_PI - *phi1;
 }
 
 void RotateEquatorToPole(Real *theta1, Real *phi1, Real theta0, Real phi0)
@@ -188,7 +193,7 @@ void RotateEquatorToPole(Real *theta1, Real *phi1, Real theta0, Real phi0)
   if (phi0 < 0. && theta0 > 0.)
     *phi1 = M_PI - *phi1;
   if (phi0 < 0. && theta0 < 0.)
-    *phi1 = - *phi1 - M_PI;
+    *phi1 = - M_PI - *phi1;
 }
 
 void SphericalLatlonToCartesian(
