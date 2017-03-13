@@ -40,7 +40,7 @@ SRC_FILES := $(wildcard src/*.cpp) \
 	     $(wildcard src/utils/*.cpp) \
 	     src/pgen/$(PROBLEM_FILE) \
 	     src/pgen/default_pgen.cpp \
-			 $(wildcard src/physics/*.cpp)
+			 $(wildcard src/particle/*.cpp)
 OBJ_DIR := obj/
 OBJ_FILES := $(addprefix $(OBJ_DIR),$(notdir $(SRC_FILES:.cpp=.o)))
 SRC_DIR := $(dir $(SRC_FILES) $(PROB_FILES))

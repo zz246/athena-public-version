@@ -29,6 +29,8 @@ namespace Prob {
   static Real tau_mass;
   static Real tau_ape;
   static Real gheq;
+  static int  tracers_per_storm;
+  static Real tracer_lifetime;
 
   static Real theta1;
   static Real theta2;
@@ -38,7 +40,6 @@ namespace Prob {
   static Real omega;
 }
 
-
 // mass pulse
 struct MassPulse {
   Real tpeak;
@@ -47,8 +48,21 @@ struct MassPulse {
   int  cyclic;
 };
 
+// Lagrangian tracer
+struct Tracer {
+  Real lat;
+  Real lon;
+  Real age;
+};
+
 // all mass pulses
 static std::vector<MassPulse> storms;
+
+// all tracers
+static std::vector<Tracer> tracers;
+
+// all coordinates in a 1D array, used in _interpn
+static std::vector<Real> axis;
 
 // last time of mass pulse in this MeshBlock
 static Real t_last_storm = -1.E-8;
@@ -57,7 +71,7 @@ static Real t_last_storm = -1.E-8;
 static long int iseed = -1;
 
 // external forcing
-void MassPulseRadiationSink(MeshBlock *pmb, const Real time, const Real dt, const int step,
+void MassPulseNewtonianCooling(MeshBlock *pmb, const Real time, const Real dt, const int step,
       const AthenaArray<Real> &prim, const AthenaArray<Real> &bcc, AthenaArray<Real> &cons);
 
 // support functions
@@ -68,6 +82,7 @@ void RotatePoleToEquator(Real *theta1, Real *phi1, Real theta0, Real phi0);
 void RotateEquatorToPole(Real *theta1, Real *phi1, Real theta0, Real phi0);
 void SphericalLatlonToCartesian(Real *x, Real *y, Real *z, Real a, Real b, Real c, Real phi, Real theta);
 void CartesianToSphericalLatlon(Real *a, Real *b, Real *c, Real x, Real y, Real z, Real phi, Real theta);
+void SetTracerLatlon(Real *lat, Real *lon, Real theta, Real phi, Real alpha, Real delta);
 
 // History output total absolute angular momentum and energy
 Real TotalAbsoluteAngularMomentum(MeshBlock *pm, int iout);
@@ -79,13 +94,13 @@ void Mesh::InitUserMeshData(ParameterInput *pin)
   EnrollUserHistoryOutput(0, TotalAbsoluteAngularMomentum, "AM");
   EnrollUserHistoryOutput(1, TotalEnergy, "EN");
 
-  //EnrollUserExplicitSourceFunction(MassPulseRadiationSink);
+  EnrollUserExplicitSourceFunction(MassPulseNewtonianCooling);
 }
 
 //  \brief Problem generator for shallow water model
 void MeshBlock::ProblemGenerator(ParameterInput *pin)
 {
-
+  // read and save problem parameter
   Prob::r_storm       = pin->GetReal("problem", "r_storm");
   Prob::tau_interval  = pin->GetReal("problem", "tau_interval");
   Prob::tau_storm     = pin->GetReal("problem", "tau_storm");
@@ -93,6 +108,8 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
   Prob::tau_mass      = pin->GetReal("problem", "tau_mass");
   Prob::tau_ape       = pin->GetReal("problem", "tau_ape");
   Prob::gheq          = pin->GetReal("problem", "gheq");
+  Prob::tracers_per_storm = pin->GetInteger("problem", "tracer_per_storm");
+  Prob::tracer_lifetime = pin->GetReal("problem", "tracer_lifetime");
 
   Prob::theta1        = pin->GetReal("problem", "theta1");
   Prob::theta2        = pin->GetReal("problem", "theta2");
@@ -104,11 +121,11 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
   // solve for far field geopotential
   Real gh0;
   int err = _root(Prob::gheq/2., Prob::gheq*2., 1., &gh0, SolveFarFieldGeopotential);
-  std::cout << gh0 << std::endl;
 
   if (err != 0)
     throw std::runtime_error("FATAL ERROR: SolveFarFieldGeopotential does not converge");
 
+  // setup initial condition
   for (int k = ks; k <= ke; ++k)
     for (int j = js; j <= je; ++j)
       for (int i = is; i <= ie; ++i) {
@@ -123,10 +140,141 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
         phydro->u(IM1,k,j,i) = phydro->u(IDN,k,j,i) * u1;
         phydro->u(IM2,k,j,i) = phydro->u(IDN,k,j,i) * u2;
 
+        // save initial geopotential field
+        //gh_init(k,j,i) = 
+
         // add pertubation
         phydro->u(IDN,k,j,i) += 2400.*cos(theta)*exp(-_sqr(3.*phi))
           * exp(-_sqr(15.*((Prob::theta1+Prob::theta2)/2.-theta)));
       }
+
+  // save all coordiantes in a continuous 1-d array
+  for (int j = 0; j < pcoord->x2v.GetDim1(); ++j)
+    axis.push_back(pcoord->x2v(j));
+  for (int i = 0; i < pcoord->x1v.GetDim1(); ++i)
+    axis.push_back(pcoord->x1v(i));
+}
+
+void MassPulseNewtonianCooling(MeshBlock *pmb, const Real time, const Real dt, const int step,
+      const AthenaArray<Real> &prim, const AthenaArray<Real> &bcc, AthenaArray<Real> &cons)
+{
+  int current_storms = storms.size();
+  Real lonmin = pmb->pmy_mesh->mesh_size.x1min;
+  Real lonmax = pmb->pmy_mesh->mesh_size.x1max;
+  Real latmin = pmb->pmy_mesh->mesh_size.x2min;
+  Real latmax = pmb->pmy_mesh->mesh_size.x2max;
+
+  // insert new storm with tracer
+  if ((step == 1) && (ran2(&iseed) < exp(-Prob::tau_interval/(time - t_last_storm)))) {
+    MassPulse storm;
+    storm.tpeak = time + Prob::tau_storm/2.;
+    storm.lat = asin(sin(latmin) + (sin(latmax) - sin(latmin))*ran2(&iseed));
+    storm.lon = lonmin + (lonmax - lonmin)*ran2(&iseed);
+    storm.cyclic = ran2(&iseed) > 0.5 ? 1 : -1;
+    storms.push_back(storm);
+    t_last_storm = time;
+
+    for (int n = 0; n < Prob::tracers_per_storm; ++n) {
+      Tracer tracer;
+      Real alpha = asin(2.2*Prob::r_storm/Prob::radius)*ran2(&iseed);
+      Real delta = 2.*M_PI*ran2(&iseed);
+
+      tracer.age = 1.E-6;
+      SetTracerLatlon(&tracer.lat, &tracer.lon, storm.lat, storm.lon, alpha, delta);
+      tracers.push_back(tracer);
+    }
+  }
+
+  /* do not use newtonian cooling now
+  // calculate average height for this instant
+  Real gh_avg[2];
+  AthenaArray<Real> vol;
+  int ncells1 = pmb->block_size.nx1 + 2*NGHOST;
+  vol.NewAthenaArray(ncells1);
+
+  gh_avg[0] = 0.;
+  gh_avg[1] = 0.;
+  for (int k = pmb->ks; k <= pmb->ke; ++k)
+    for (int j = pmb->js; j <= pmb->je; ++j) {
+      pmb->pcoord->CellVolume(k, j, pmb->is, pmb->ie, vol);
+      for (int i = pmb->is; i <= pmb->ie; ++i) {
+        gh_avg[0] += prim(IDN,k,j,i) * vol(i);
+        gh_avg[1] += vol(i);
+      }
+    }
+#ifdef MPI_PARALLEL
+  MPI_Allreduce(MPI_IN_PLACE, gh_avg, 2, MPI_ATHENA_REAL, MPI_SUM, MPI_COMM_WORLD);
+#endif
+  gh_avg[0] /= gh_avg[1];
+  */
+
+  // add storm source
+  for (int k = pmb->ks; k <= pmb->ke; ++k)
+    for (int j = pmb->js; j <= pmb->je; ++j)
+      for (int i = pmb->is; i <= pmb->ie; ++i) {
+        Real lon1 = pmb->pcoord->x1v(i);
+        Real lat1 = pmb->pcoord->x2v(j);
+        for (size_t n = 0; n < current_storms; ++n) {
+          Real lon2 = storms[n].lon;
+          Real lat2 = storms[n].lat;
+          Real dr = Prob::radius*acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon1-lon2));
+          int  sign = storms[n].cyclic;
+          if (dr > 2.2 * Prob::r_storm) continue;
+
+          // mass pulse
+          cons(IDN,k,j,i) += dt * Prob::smax * sign 
+            * exp(-_sqr(dr)/_sqr(Prob::r_storm) - _sqr(time - storms[n].tpeak)/_sqr(Prob::tau_storm));
+        }
+        // Newtonian cooling
+        //cons(IDN,k,j,i) += - dt * (gh_avg[0] - gheq)/tau_mass;
+      }
+
+  // remove deceased storms
+  if ((step == 2) && (storms.size() > 0)) {
+    size_t n = 0;
+    for (; n < storms.size(); ++n)
+      if (time - storms[n].tpeak < 2.2*Prob::tau_storm)
+        break;
+    storms.erase(storms.begin(), storms.begin() + n);
+  }
+
+  // Lagrangian tracer advection and elimination
+  AthenaArray<Real> ug;
+  Real loc[2], v1, v2;
+  int length[2];
+  length[0] = pmb->pcoord->x2v.GetDim1();
+  length[1] = pmb->pcoord->x1v.GetDim1();
+
+  if (step == 2) {
+    for (size_t n = 0; n < tracers.size(); ++n) {
+      if (tracers[n].lat < latmin || tracers[n].lat > latmax ||
+          tracers[n].lon < lonmin || tracers[n].lon > lonmax ||
+          ran2(&iseed) < exp(-Prob::tracer_lifetime / tracers[n].age)) {
+        tracers[n].age = -1.;
+      } else {
+        loc[0] = tracers[n].lat;
+        loc[1] = tracers[n].lon;
+
+        ug.InitWithShallowSlice(pmb->phydro->w1,4,IM1,1);
+        _interpn(&v1, loc, ug.data(), axis.data(), length, 2, 1);
+
+        ug.InitWithShallowSlice(pmb->phydro->w1,4,IM2,1);
+        _interpn(&v2, loc, ug.data(), axis.data(), length, 2, 1);
+
+        tracers[n].lat += v2 * dt / Prob::radius;
+        tracers[n].lon += v1 * dt / (Prob::radius * cos(tracers[n].lat));
+        tracers[n].age += dt;
+      }
+    }
+
+    size_t n = 0;
+    while (n < tracers.size()) {
+      if (tracers[n].age < 0.)
+        tracers.erase(tracers.begin() + n);
+      else
+        n++;
+    }
+  }
 }
 
 Real GetZonalWind(Real theta)
@@ -216,6 +364,13 @@ void CartesianToSphericalLatlon(
   *c = x*cos(theta)*cos(phi) + y*cos(theta)*sin(phi) + z*sin(theta);
 }
 
+void SetTracerLatlon(Real *lat, Real *lon, Real theta, Real phi, Real alpha, Real delta)
+{
+  *lat = asin(sin(theta)*cos(alpha) - cos(theta)*sin(alpha)*cos(delta));
+  *lon = phi + acos((sin(theta)*sin(alpha)*cos(delta) + cos(theta)*cos(alpha))/cos(*lat));
+  if (*lon > M_PI) *lon -= 2.*M_PI;
+}
+
 Real TotalAbsoluteAngularMomentum(MeshBlock *pmb, int iout)
 {
   AthenaArray<Real> vol;
@@ -262,75 +417,3 @@ Real TotalEnergy(MeshBlock *pmb, int iout)
 
   return en;
 }
-
-/*void MassPulseRadiationSink(MeshBlock *pmb, const Real time, const Real dt, const int step,
-      const AthenaArray<Real> &prim, const AthenaArray<Real> &bcc, AthenaArray<Real> &cons)
-{
-  int current_storms = storms.size();
-  Real lonmin = pmb->pmy_mesh->mesh_size.x1min;
-  Real lonmax = pmb->pmy_mesh->mesh_size.x1max;
-  Real latmin = pmb->pmy_mesh->mesh_size.x2min;
-  Real latmax = pmb->pmy_mesh->mesh_size.x2max;
-
-  // insert new storm
-  if ((step == 1) && (ran2(&iseed) < exp(-tau_interval/(time - t_last_storm)))) {
-    MassPulse storm;
-    storm.tpeak = time + tau_storm/2.;
-    storm.lat = asin(sin(latmin) + (sin(latmax) - sin(latmin))*ran2(&iseed));
-    storm.lon = lonmin + (lonmax - lonmin)*ran2(&iseed);
-    storm.cyclic = ran2(&iseed) > 0.5 ? 1 : -1;
-    storms.push_back(storm);
-    t_last_storm = time;
-  }
-
-  // calculate average height for this instant
-  Real gh_avg[2];
-  AthenaArray<Real> vol;
-  int ncells1 = pmb->block_size.nx1 + 2*NGHOST;
-  vol.NewAthenaArray(ncells1);
-
-  gh_avg[0] = 0.;
-  gh_avg[1] = 0.;
-  for (int k = pmb->ks; k <= pmb->ke; ++k)
-    for (int j = pmb->js; j <= pmb->je; ++j) {
-      pmb->pcoord->CellVolume(k, j, pmb->is, pmb->ie, vol);
-      for (int i = pmb->is; i <= pmb->ie; ++i) {
-        gh_avg[0] += prim(IDN,k,j,i) * vol(i);
-        gh_avg[1] += vol(i);
-      }
-    }
-#ifdef MPI_PARALLEL
-  MPI_Allreduce(MPI_IN_PLACE, gh_avg, 2, MPI_ATHENA_REAL, MPI_SUM, MPI_COMM_WORLD);
-#endif
-  gh_avg[0] /= gh_avg[1];
-
-  // add storm source
-  for (int k = pmb->ks; k <= pmb->ke; ++k)
-    for (int j = pmb->js; j <= pmb->je; ++j)
-      for (int i = pmb->is; i <= pmb->ie; ++i) {
-        Real lon1 = pmb->pcoord->x1v(i);
-        Real lat1 = pmb->pcoord->x2v(j);
-        for (size_t n = 0; n < current_storms; ++n) {
-          Real lon2 = storms[n].lon;
-          Real lat2 = storms[n].lat;
-          Real dr = Prob::radius*acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon1-lon2));
-          int  sign = storms[n].cyclic;
-          if (dr > 2.2 * r_storm) continue;
-
-          // mass pulse
-          cons(IDN,k,j,i) += dt * smax * sign * exp(-_sqr(dr)/_sqr(r_storm) - _sqr(time - storms[n].tpeak)/_sqr(tau_storm));
-        }
-        // radiation
-        //cons(IDN,k,j,i) += - dt * ((gh_avg[0] - gheq)/tau_mass + (prim(IDN,k,j,i) - gh_avg[0])/tau_ape);
-        cons(IDN,k,j,i) += - dt * (gh_avg[0] - gheq)/tau_mass;
-      }
-
-  // remove deceased storms
-  if ((step == 2) && (storms.size() > 0)) {
-    size_t n = 0;
-    for (; n < storms.size(); ++n)
-      if (time - storms[n].tpeak < 2.2*tau_storm)
-        break;
-    storms.erase(storms.begin(), storms.begin() + n);
-  }
-}*/

@@ -86,6 +86,13 @@ parser.add_argument('--fint',
     choices=['vl2', 'rk2'],
     help='select hydro time-integration algorithm')
 
+# --particle=[num] argument
+parser.add_argument('--particle',
+    default='00',
+    choices=map(lambda x: '0'+hex(x)[2:], range(0, 16)) \
+          + map(lambda x: hex(x)[2:], range(16, 256)),
+    help='request the number of real and integer particle data')
+
 # -b argument
 parser.add_argument('-b',
     action='store_true',
@@ -256,6 +263,10 @@ definitions['RECONSTRUCT'] = makefile_options['RECONSTRUCT_FILE'] = args['order'
 
 # --fint=[name] argument
 definitions['HYDRO_INTEGRATOR'] = makefile_options['HYDRO_INT_FILE'] = args['fint']
+
+# --particle=[num] argument
+definitions['NREAL_PARTICLE_DATA'] = str(int(args['particle'][0], 16))
+definitions['NINT_PARTICLE_DATA']  = str(int(args['particle'][1], 16))
 
 # -b argument
 # set variety of macros based on whether MHD/hydro or adi/iso are defined
@@ -457,6 +468,7 @@ print('  Equation of state:       ' + args['eos'])
 print('  Riemann solver:          ' + args['flux'])
 print('  Reconstruction method:   ' + args['order'])
 print('  Hydro integrator:        ' + args['fint'])
+print('  Particle data:           ' + args['particle'])
 print('  Magnetic fields:         ' + ('ON' if args['b'] else 'OFF'))
 print('  Special relativity:      ' + ('ON' if args['s'] else 'OFF'))
 print('  General relativity:      ' + ('ON' if args['g'] else 'OFF'))

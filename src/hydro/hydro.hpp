@@ -8,6 +8,9 @@
 //! \file hydro.hpp
 //  \brief definitions for Hydro class
 
+// C++ header
+#include <vector>
+
 // Athena++ classes headers
 #include "../athena.hpp"
 #include "../athena_arrays.hpp"
@@ -16,6 +19,7 @@
 class MeshBlock;
 class ParameterInput;
 class HydroSourceTerms;
+struct OneParticle;
 
 //! \class Hydro
 //  \brief hydro data and functions
@@ -44,6 +48,7 @@ public:
   void RiemannSolver(const int k, const int j, const int il, const int iu,
     const int ivx, const AthenaArray<Real> &bx, AthenaArray<Real> &wl,
     AthenaArray<Real> &wr, AthenaArray<Real> &flx);
+  void InterpolateVelocity(std::vector<OneParticle> &q);
 
 private:
   AthenaArray<Real> dt1_,dt2_,dt3_;  // scratch arrays used in NewTimeStep
@@ -62,5 +67,9 @@ private:
   AthenaArray<Real> cons_;         // conserved state, for some GR Riemann solvers
 
   TimeStepFunc_t UserTimeStep_;
+
+  // particle related data
+  std::vector<Real> coordinates_;
+  int lengths_[3];
 };
 #endif // HYDRO_HPP

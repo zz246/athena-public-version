@@ -79,6 +79,20 @@ Hydro::Hydro(MeshBlock *pmb, ParameterInput *pin)
 
   // Construct ptrs to objects of various classes needed to integrate hydro/MHD eqns 
   psrc  = new HydroSourceTerms(this,pin);
+
+  // allocate coordinates and length for particle
+  coordinates_.resize(ncells3 + ncells2 + ncells1);
+
+  for (int k = 0; k < ncells3; ++k)
+    coordinates_[k] = pmb->pcoord->x3v(k);
+  for (int j = 0; j < ncells2; ++j)
+    coordinates_[ncells3 + j] = pmb->pcoord->x2v(j);
+  for (int i = 0; i < ncells1; ++i)
+    coordinates_[ncells3 + ncells2 + i] = pmb->pcoord->x1v(i);
+
+  lengths_[0] = ncells3;
+  lengths_[1] = ncells2;
+  lengths_[2] = ncells1;
 }
 
 // destructor

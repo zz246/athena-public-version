@@ -5,14 +5,117 @@
 #include <sstream>    // std::stringstream
 #include <stdexcept>  // std::runtime_error
 
-#include "athena.hpp"  // Real
-
 // small & simple functions
-inline Real _sqr(Real x) { return x * x; }
-inline Real _cub(Real x) { return x * x * x; }
-inline Real _max(Real a, Real b) { return a > b ? a : b; }
-inline Real _min(Real a, Real b) { return a < b ? a : b; }
-inline int _sign(Real x) { return x < 0. ? -1 : 1; }
+template<typename T>
+inline T _sqr(T x) { return x * x; }
+
+template<typename T>
+inline T _cub(T x) { return x * x * x; }
+
+template<typename T>
+inline T _max(T a, T b) { return a > b ? a : b; }
+
+template<typename T>
+inline T _min(T a, T b) { return a < b ? a : b; }
+
+template<typename T>
+inline int _sign(T x) { return x < 0. ? -1 : 1; }
+
+// binary search for the index of the value in an ordered array
+template<typename T>
+int _locate(
+        T const *xx,
+        T x,
+        int n,
+        int d = 1
+        )
+{
+    if (n <= 0) return -1;
+    int ju, jm, jl, j;
+    int monotonicity = 0;
+
+    jl = 0;
+    ju = n + 1;
+
+    if (n == 1)
+        monotonicity = 1;
+    else if (xx[d] > xx[0])
+        monotonicity = 1;
+
+    xx -= d;
+
+    while (ju - jl > 1) {
+        jm = (ju + jl) >> 1;
+        if ((x >= xx[jm * d] && monotonicity == 1) || (x <= xx[jm * d] && monotonicity == 0))
+            jl = jm;
+        else
+            ju = jm;
+    }
+
+    if (x == xx[d]) {
+        j = 1;
+    } else {
+        if (x == xx[n * d]) j = n - 1;
+        else j = jl;
+    }
+
+    j -= 1;
+
+    return j;
+}
+
+// multidimensional linear interpolation
+template<typename T>
+void _interpn(
+        T *val,
+        T const *coor,
+        T const *data,
+        T const *axis,
+        int const *len,
+        int ndim,
+        int nval = 1
+        )
+{
+    int i1, i2;
+
+    i1 = _locate(axis, *coor, *len);
+
+    // if the interpolation value is out of bound
+    // use the closest value
+    if (i1 == -1) {
+        i1 = 0; i2 = 0;
+    } else if (i1 == *len - 1) {
+        i1 = *len - 1; i2 = *len - 1;
+    } else i2 = i1 + 1;
+
+    T *v1 = new T [nval],
+      *v2 = new T [nval];
+
+    T x1 = axis[i1],
+      x2 = axis[i2];
+
+    if (ndim == 1) {
+        for (int j = 0; j < nval; ++j) {
+            v1[j] = data[i1 * nval + j];
+            v2[j] = data[i2 * nval + j];
+        }
+    } else {
+        int s = nval;
+        for (int j = 1; j < ndim; ++j) s *= len[j];
+        _interpn(v1, coor + 1, data + i1 * s, axis + *len, len + 1, ndim - 1, nval);
+        _interpn(v2, coor + 1, data + i2 * s, axis + *len, len + 1, ndim - 1, nval);
+    }
+
+    if (x2 != x1)
+        for (int j = 0; j < nval; ++j)
+            val[j] = ((*coor - x1) * v2[j] + (x2 - *coor) * v1[j]) / (x2 - x1);
+    else
+        for (int j = 0; j < nval; ++j)
+            val[j] = (v1[j] + v2[j]) / 2.;
+
+    delete[] v1;
+    delete[] v2;
+}
 
 #undef  MAX_IT
 #define MAX_IT 100
@@ -20,19 +123,19 @@ inline int _sign(Real x) { return x < 0. ? -1 : 1; }
 #undef  UNLIKELY_VAL
 #define UNLIKELY_VAL -1.11111e+30
 
-template<typename T>
+template<typename R, typename T>
 int _root(
-        Real  x1,
-        Real  x2,
-        Real  xacc,
-        Real *x_root,
+        R x1,
+        R x2,
+        R xacc,
+        R *x_root,
         T& func
         )
 {
   int
     iter,
     compare;
-  Real
+  R 
     fh,fl,fm,fnew,
     s,xh,xl,xm,xnew;
   static char

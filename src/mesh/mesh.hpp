@@ -36,6 +36,7 @@ class Reconstruction;
 class Hydro;
 class Field;
 class EquationOfState;
+class Particle;
 
 //----------------------------------------------------------------------------------------
 //! \struct NeighborBlock
@@ -127,6 +128,9 @@ public:
   Hydro *phydro;
   Field *pfield;
   EquationOfState *peos;
+
+  // Particle-related objects
+  Particle *pparticle;
 
   MeshBlock *prev, *next;
 
