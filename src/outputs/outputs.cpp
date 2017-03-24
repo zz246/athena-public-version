@@ -196,7 +196,8 @@ Outputs::Outputs(Mesh *pm, ParameterInput *pin)
           op.cartesian_vector=false;
 
         // set output variable and optional data format string used in formatted writes
-        if (op.file_type.compare("hst") != 0 && op.file_type.compare("rst") != 0) {
+        if (op.file_type.compare("hst") != 0 && op.file_type.compare("rst") != 0 
+            && op.file_type.compare("pat") != 0) {
           op.variable = pin->GetString(op.block_name,"variable");
         }
         op.data_format = pin->GetOrAddString(op.block_name,"data_format","%12.5e");
@@ -209,6 +210,8 @@ Outputs::Outputs(Mesh *pm, ParameterInput *pin)
           num_hst_outputs++;
         } else if (op.file_type.compare("tab") == 0) {
           pnew_type = new FormattedTableOutput(op);
+        } else if (op.file_type.compare("pat") == 0) {
+          pnew_type = new ParticleTableOutput(op);
         } else if (op.file_type.compare("vtk") == 0) {
           pnew_type = new VTKOutput(op);
         } else if (op.file_type.compare("rst") == 0) {

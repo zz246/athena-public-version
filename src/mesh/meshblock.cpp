@@ -127,7 +127,7 @@ MeshBlock::MeshBlock(int igid, int ilid, LogicalLocation iloc, RegionSize input_
   peos = new EquationOfState(this, pin);
 
   // particle-related objects
-  pparticle = new Particle(this, pin);
+  ppg = NULL;
 
   // Create user mesh data
   InitUserMeshBlockData(pin);
@@ -280,6 +280,13 @@ MeshBlock::~MeshBlock()
   delete phydro;
   if (MAGNETIC_FIELDS_ENABLED) delete pfield;
   delete peos;
+
+  while (ppg != NULL) {
+    ParticleGroup *p = ppg;
+    ppg = ppg->next;
+    delete p;
+  }
+  ppg = NULL;
 
   // delete user output variables array
   user_out_var.DeleteAthenaArray();

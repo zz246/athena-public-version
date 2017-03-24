@@ -6,7 +6,7 @@
 #include "../particle/particle.hpp"
 #include "../athena_math.hpp"
 
-void Hydro::InterpolateVelocity(std::vector<OneParticle> &q)
+void Hydro::InterpolateVelocity(std::vector<Particle> &q)
 {
   AthenaArray<Real> v1, v2, v3;
   Real loc[3];

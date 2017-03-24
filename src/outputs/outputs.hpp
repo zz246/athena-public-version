@@ -118,6 +118,13 @@ public:
   void WriteOutputFile(Mesh *pm, ParameterInput *pin, bool flag);
 };
 
+class ParticleTableOutput : public FormattedTableOutput {
+public:
+  ParticleTableOutput(OutputParameters oparams);
+  ~ParticleTableOutput() {};
+  void WriteOutputFile(Mesh *pm, ParameterInput *pin, bool flag);
+};
+
 //----------------------------------------------------------------------------------------
 //! \class VTKOutput
 //  \brief derived OutputType class for vtk dumps

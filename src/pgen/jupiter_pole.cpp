@@ -19,6 +19,7 @@
 #include "../field/field.hpp"
 #include "../mesh/mesh.hpp"
 #include "../utils/utils.hpp"
+#include "../particle/particle.hpp"
 
 // model parameters shared by all subroutine
 namespace Prob {
@@ -39,30 +40,6 @@ namespace Prob {
   static Real radius;
   static Real omega;
 }
-
-// mass pulse
-struct MassPulse {
-  Real tpeak;
-  Real lat;
-  Real lon;
-  int  cyclic;
-};
-
-// Lagrangian tracer
-struct Tracer {
-  Real lat;
-  Real lon;
-  Real age;
-};
-
-// all mass pulses
-static std::vector<MassPulse> storms;
-
-// all tracers
-static std::vector<Tracer> tracers;
-
-// all coordinates in a 1D array, used in _interpn
-static std::vector<Real> axis;
 
 // last time of mass pulse in this MeshBlock
 static Real t_last_storm = -1.E-8;
@@ -108,7 +85,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
   Prob::tau_mass      = pin->GetReal("problem", "tau_mass");
   Prob::tau_ape       = pin->GetReal("problem", "tau_ape");
   Prob::gheq          = pin->GetReal("problem", "gheq");
-  Prob::tracers_per_storm = pin->GetInteger("problem", "tracer_per_storm");
+  Prob::tracers_per_storm = pin->GetInteger("problem", "tracers_per_storm");
   Prob::tracer_lifetime = pin->GetReal("problem", "tracer_lifetime");
 
   Prob::theta1        = pin->GetReal("problem", "theta1");
@@ -148,17 +125,18 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
           * exp(-_sqr(15.*((Prob::theta1+Prob::theta2)/2.-theta)));
       }
 
-  // save all coordiantes in a continuous 1-d array
-  for (int j = 0; j < pcoord->x2v.GetDim1(); ++j)
-    axis.push_back(pcoord->x2v(j));
-  for (int i = 0; i < pcoord->x1v.GetDim1(); ++i)
-    axis.push_back(pcoord->x1v(i));
+  // storm and tracer particles
+  ppg = new ParticleGroup(this, "storm");
+  ppg->AddParticleGroup(this, "tracer");
 }
 
 void MassPulseNewtonianCooling(MeshBlock *pmb, const Real time, const Real dt, const int step,
       const AthenaArray<Real> &prim, const AthenaArray<Real> &bcc, AthenaArray<Real> &cons)
 {
-  int current_storms = storms.size();
+  std::vector<Particle>& storms = pmb->ppg->GetParticle("storm");
+  std::vector<Particle>& tracers = pmb->ppg->GetParticle("tracer");
+
+  size_t current_storms = storms.size();
   Real lonmin = pmb->pmy_mesh->mesh_size.x1min;
   Real lonmax = pmb->pmy_mesh->mesh_size.x1max;
   Real latmin = pmb->pmy_mesh->mesh_size.x2min;
@@ -166,21 +144,20 @@ void MassPulseNewtonianCooling(MeshBlock *pmb, const Real time, const Real dt, c
 
   // insert new storm with tracer
   if ((step == 1) && (ran2(&iseed) < exp(-Prob::tau_interval/(time - t_last_storm)))) {
-    MassPulse storm;
-    storm.tpeak = time + Prob::tau_storm/2.;
-    storm.lat = asin(sin(latmin) + (sin(latmax) - sin(latmin))*ran2(&iseed));
-    storm.lon = lonmin + (lonmax - lonmin)*ran2(&iseed);
-    storm.cyclic = ran2(&iseed) > 0.5 ? 1 : -1;
+    Particle storm;
+    storm.time = time;
+    storm.x2 = asin(sin(latmin) + (sin(latmax) - sin(latmin))*ran2(&iseed));
+    storm.x1 = lonmin + (lonmax - lonmin)*ran2(&iseed);
     storms.push_back(storm);
     t_last_storm = time;
 
     for (int n = 0; n < Prob::tracers_per_storm; ++n) {
-      Tracer tracer;
+      Particle tracer;
       Real alpha = asin(2.2*Prob::r_storm/Prob::radius)*ran2(&iseed);
       Real delta = 2.*M_PI*ran2(&iseed);
 
-      tracer.age = 1.E-6;
-      SetTracerLatlon(&tracer.lat, &tracer.lon, storm.lat, storm.lon, alpha, delta);
+      tracer.time = time;
+      SetTracerLatlon(&tracer.x2, &tracer.x1, storm.x2, storm.x1, alpha, delta);
       tracers.push_back(tracer);
     }
   }
@@ -215,15 +192,15 @@ void MassPulseNewtonianCooling(MeshBlock *pmb, const Real time, const Real dt, c
         Real lon1 = pmb->pcoord->x1v(i);
         Real lat1 = pmb->pcoord->x2v(j);
         for (size_t n = 0; n < current_storms; ++n) {
-          Real lon2 = storms[n].lon;
-          Real lat2 = storms[n].lat;
-          Real dr = Prob::radius*acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon1-lon2));
-          int  sign = storms[n].cyclic;
+          Real lon2 = storms[n].x1;
+          Real lat2 = storms[n].x2;
+          Real dr = Prob::radius * acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon1-lon2));
           if (dr > 2.2 * Prob::r_storm) continue;
 
           // mass pulse
-          cons(IDN,k,j,i) += dt * Prob::smax * sign 
-            * exp(-_sqr(dr)/_sqr(Prob::r_storm) - _sqr(time - storms[n].tpeak)/_sqr(Prob::tau_storm));
+          Real r2r2 = _sqr(dr)/_sqr(Prob::r_storm);
+          Real t2t2 = _sqr(time - (storms[n].time + Prob::tau_storm/2.))/_sqr(Prob::tau_storm);
+          cons(IDN,k,j,i) += dt * Prob::smax * exp(- r2r2 - t2t2);
         }
         // Newtonian cooling
         //cons(IDN,k,j,i) += - dt * (gh_avg[0] - gheq)/tau_mass;
@@ -233,43 +210,29 @@ void MassPulseNewtonianCooling(MeshBlock *pmb, const Real time, const Real dt, c
   if ((step == 2) && (storms.size() > 0)) {
     size_t n = 0;
     for (; n < storms.size(); ++n)
-      if (time - storms[n].tpeak < 2.2*Prob::tau_storm)
+      if (time - storms[n].time < Prob::tau_storm)
         break;
     storms.erase(storms.begin(), storms.begin() + n);
   }
 
   // Lagrangian tracer advection and elimination
-  AthenaArray<Real> ug;
-  Real loc[2], v1, v2;
-  int length[2];
-  length[0] = pmb->pcoord->x2v.GetDim1();
-  length[1] = pmb->pcoord->x1v.GetDim1();
-
   if (step == 2) {
+    pmb->phydro->InterpolateVelocity(tracers);
     for (size_t n = 0; n < tracers.size(); ++n) {
-      if (tracers[n].lat < latmin || tracers[n].lat > latmax ||
-          tracers[n].lon < lonmin || tracers[n].lon > lonmax ||
-          ran2(&iseed) < exp(-Prob::tracer_lifetime / tracers[n].age)) {
-        tracers[n].age = -1.;
+      Real age = time - tracers[n].time;
+      if (tracers[n].x2 < latmin || tracers[n].x2 > latmax ||
+          tracers[n].x1 < lonmin || tracers[n].x1 > lonmax ||
+          ran2(&iseed) < exp(-Prob::tracer_lifetime / age)) {
+        tracers[n].time = -1.;
       } else {
-        loc[0] = tracers[n].lat;
-        loc[1] = tracers[n].lon;
-
-        ug.InitWithShallowSlice(pmb->phydro->w1,4,IM1,1);
-        _interpn(&v1, loc, ug.data(), axis.data(), length, 2, 1);
-
-        ug.InitWithShallowSlice(pmb->phydro->w1,4,IM2,1);
-        _interpn(&v2, loc, ug.data(), axis.data(), length, 2, 1);
-
-        tracers[n].lat += v2 * dt / Prob::radius;
-        tracers[n].lon += v1 * dt / (Prob::radius * cos(tracers[n].lat));
-        tracers[n].age += dt;
+        tracers[n].x1 += tracers[n].v1 * dt / (Prob::radius * cos(tracers[n].x2));
+        tracers[n].x2 += tracers[n].v2 * dt / Prob::radius;
       }
     }
 
     size_t n = 0;
     while (n < tracers.size()) {
-      if (tracers[n].age < 0.)
+      if (tracers[n].time < 0.)
         tracers.erase(tracers.begin() + n);
       else
         n++;

@@ -19,7 +19,7 @@
 class MeshBlock;
 class ParameterInput;
 class HydroSourceTerms;
-struct OneParticle;
+struct Particle;
 
 //! \class Hydro
 //  \brief hydro data and functions
@@ -48,7 +48,7 @@ public:
   void RiemannSolver(const int k, const int j, const int il, const int iu,
     const int ivx, const AthenaArray<Real> &bx, AthenaArray<Real> &wl,
     AthenaArray<Real> &wr, AthenaArray<Real> &flx);
-  void InterpolateVelocity(std::vector<OneParticle> &q);
+  void InterpolateVelocity(std::vector<Particle> &q);
 
 private:
   AthenaArray<Real> dt1_,dt2_,dt3_;  // scratch arrays used in NewTimeStep
