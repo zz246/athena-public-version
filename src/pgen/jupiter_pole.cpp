@@ -50,6 +50,8 @@ static long int iseed = -1;
 // external forcing
 void MassPulseNewtonianCooling(MeshBlock *pmb, const Real time, const Real dt, const int step,
       const AthenaArray<Real> &prim, const AthenaArray<Real> &bcc, AthenaArray<Real> &cons);
+void LagrangianTracerAdvection(MeshBlock *pmb, const Real time, const Real dt, const int step,
+      const AthenaArray<Real> &prim, const AthenaArray<Real> &bcc, AthenaArray<Real> &cons);
 
 // support functions
 Real GetZonalWind(Real theta);
@@ -71,7 +73,8 @@ void Mesh::InitUserMeshData(ParameterInput *pin)
   EnrollUserHistoryOutput(0, TotalAbsoluteAngularMomentum, "AM");
   EnrollUserHistoryOutput(1, TotalEnergy, "EN");
 
-  EnrollUserExplicitSourceFunction(MassPulseNewtonianCooling);
+  //EnrollUserExplicitSourceFunction(MassPulseNewtonianCooling);
+  EnrollUserExplicitSourceFunction(LagrangianTracerAdvection);
 }
 
 //  \brief Problem generator for shallow water model
@@ -126,8 +129,60 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
       }
 
   // storm and tracer particles
-  ppg = new ParticleGroup(this, "storm");
-  ppg->AddParticleGroup(this, "tracer");
+  //ppg = new ParticleGroup(this, "storm");
+  //ppg->AddParticleGroup(this, "tracer");
+  
+  // insert randomly distributed tracers over the domain
+  ppg = new ParticleGroup(this, "tracer");
+
+  Real lonmin = pmy_mesh->mesh_size.x1min;
+  Real lonmax = pmy_mesh->mesh_size.x1max;
+  Real latmin = pmy_mesh->mesh_size.x2min;
+  Real latmax = pmy_mesh->mesh_size.x2max;
+
+  std::vector<Particle>& tracers = ppg->GetParticle("tracer");
+  for (int n = 0; n < Prob::tracers_per_storm; ++n) {
+    Particle tracer;
+    tracer.time = 0.;
+    tracer.x2 = asin(sin(latmin) + (sin(latmax) - sin(latmin))*ran2(&iseed));
+    tracer.x1 = lonmin + (lonmax - lonmin)*ran2(&iseed);
+    tracers.push_back(tracer);
+  }
+}
+
+void LagrangianTracerAdvection(MeshBlock *pmb, const Real time, const Real dt, const int step,
+      const AthenaArray<Real> &prim, const AthenaArray<Real> &bcc, AthenaArray<Real> &cons)
+{
+  Real lonmin = pmb->pmy_mesh->mesh_size.x1min;
+  Real lonmax = pmb->pmy_mesh->mesh_size.x1max;
+  Real latmin = pmb->pmy_mesh->mesh_size.x2min;
+  Real latmax = pmb->pmy_mesh->mesh_size.x2max;
+
+  // Lagrangian tracer advection and elimination
+  std::vector<Particle>& tracers = pmb->ppg->GetParticle("tracer");
+
+  if (step == 2) {
+    pmb->phydro->InterpolateVelocity(tracers);
+    for (size_t n = 0; n < tracers.size(); ++n) {
+      Real age = time - tracers[n].time;
+      if (tracers[n].x2 < latmin || tracers[n].x2 > latmax ||
+          tracers[n].x1 < lonmin || tracers[n].x1 > lonmax ||
+          ran2(&iseed) < exp(-Prob::tracer_lifetime / age)) {
+        tracers[n].time = -1.;
+      } else {
+        tracers[n].x1 += tracers[n].v1 * dt / (Prob::radius * cos(tracers[n].x2));
+        tracers[n].x2 += tracers[n].v2 * dt / Prob::radius;
+      }
+    }
+
+    size_t n = 0;
+    while (n < tracers.size()) {
+      if (tracers[n].time < 0.)
+        tracers.erase(tracers.begin() + n);
+      else
+        n++;
+    }
+  }
 }
 
 void MassPulseNewtonianCooling(MeshBlock *pmb, const Real time, const Real dt, const int step,

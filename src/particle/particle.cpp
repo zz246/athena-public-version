@@ -24,7 +24,12 @@ ParticleGroup::~ParticleGroup()
 // functions
 ParticleGroup* ParticleGroup::AddParticleGroup(MeshBlock *pmb, std::string name)
 {
+  std::stringstream msg;
   ParticleGroup *p = this;
+  if (p == NULL) {
+    msg << "### FATAL ERROR in AddParticleGroup: ParticleGroup is empty, use new ParticleGroup instead" << std::endl;
+    throw std::runtime_error(msg.str().c_str());
+  }
   while (p->next != NULL) p = p->next;
   p->next = new ParticleGroup(pmb, name);
   p->next->prev = p;
