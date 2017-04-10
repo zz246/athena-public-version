@@ -60,3 +60,73 @@ tree has several methods:
 nref,nderef, rdisp, ddisp, bnref, bndref, brdisp, rddisp -> amr variables
 
 gid, lid in MeshBlock are both input variables
+
+- 4/9/2017
+ox1, ox2, ox3 : {-1, 0, 1}, indicate the position of the NeighborBlock.
+type : {NEIGHBOR_FACE, NEIGHBOR_EDGE}
+
+   E_________H              ^ x3
+   /:       /|              |
+  / :      / |              |
+A/__:_____/D |              |
+ | F:.....|../G             /----------> x2
+ | /      | /              / 
+B|/_______|/C         x1 |/_
+
+
+
+ox1   ox2   ox3   Face/Edge   fid/eid
+-1    *     *     EFGH        INNER_X1
+1     *     *     ABCE        OUTER_X1
+*     -1    *     ABFE        INNER_X2
+*     1     *     DCGH        OUTER_X2
+*     *     -1    BCGF        INNER_X3
+*     *     1     ADHE        OUTER_X3
+-1    -1    0     EF          0
+1     -1    0     AB          1
+-1    1     0     GH          2 
+1     1     0     CD          3
+-1    0     -1    FG          4
+1     0     -1    BC          5
+-1    0     1     EH          6  
+1     0     1     AD          7
+0     -1    -1    BF          8
+0     1     -1    CG          9
+0     -1    1     AE          10
+0     1     1     DH          11
+
+LogicalLocation: lx1, lx2, lx3, level
+Sequential index of the current meshblock counted from 0 assuming the whole mesh is
+refined to the current level.
+meshblock_tree.cpp:
+loc.lx1 = (parent->loc.lx1<<1) + ox;
+loc.lx2 = (parent->loc.lx2<<1) + oy;
+loc.lx3 = (parent->loc.lx3<<1) + oz;
+
+MeshBlockTree::GreateRootGrid, gid is -1, lx1,lx2,lx3,level are correctly set
+Start from level 0 and check whether its leaf is still in the domian. If so, create this
+leaf node and go down one level. Otherwise, return
+
+MeshBlockTree::AddMeshBlock (add a refined meshblock)
+suppose the logcial location of one meshblock is: 101101
+You can trace its location by reading from left to right:
+right -> left -> right -> right -> left -> right. The algorithm is:
+int sh = rloc.level - loc.level -1;
+mx = (int)((rloc.lx1 >> sh) & 1L);
+my = (int)((rloc.lx2 >> sh) & 1L);
+mz = (int)((rloc.lx3 >> sh) & 1L);
+pleaf[mz][my][mx]->AddMshBlock(...);
+level and check leaf recursively. Otherwise, 
+
+NeighborBlock neighbor[56]
+6 faces, each can have 4 neighbors maximum (refined)
+12 edges, each can have 2 neighbors maximum
+8 corners, each has 1 neighbor maximum
+6*4+12*2+8 = 56
+
+fi1, fi2 : {0, 1}, each face can contact two other faces maximum
+If there is only one level, fi1 & fi2 are always 1.
+If there is SMR/AMR, fi1 & fi2 can be 2
+1,2 are two dimensions of this contacting face
+
+what is bufid, targetid? Should be related to MPI communication
