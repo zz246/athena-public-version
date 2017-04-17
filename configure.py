@@ -14,6 +14,7 @@
 #   --flux=choice     use choice as the Riemann solver
 #   --order=choice    use choice as the spatial reconstruction algorithm
 #   --fint=choice     use choice as the hydro time-integration algorithm
+#   --exe=folder      folder containing the executable file
 #   -b                enable magnetic fields
 #   -s                enable special relativity
 #   -g                enable general relativity
@@ -92,6 +93,11 @@ parser.add_argument('--particle',
     choices=map(lambda x: '0'+hex(x)[2:], range(0, 16)) \
           + map(lambda x: hex(x)[2:], range(16, 256)),
     help='request the number of real and integer particle data')
+
+# --exe=[folder] argument
+parser.add_argument('--exe',
+    default='bin/',
+    help='folder containing the executable file')
 
 # -b argument
 parser.add_argument('-b',
@@ -267,6 +273,9 @@ definitions['HYDRO_INTEGRATOR'] = makefile_options['HYDRO_INT_FILE'] = args['fin
 # --particle=[num] argument
 definitions['NREAL_PARTICLE_DATA'] = str(int(args['particle'][0], 16))
 definitions['NINT_PARTICLE_DATA']  = str(int(args['particle'][1], 16))
+
+# --exe=[folder] argument
+definitions['EXE_DIR'] = makefile_options['EXE_DIR'] = args['exe']
 
 # -b argument
 # set variety of macros based on whether MHD/hydro or adi/iso are defined
@@ -469,6 +478,7 @@ print('  Riemann solver:          ' + args['flux'])
 print('  Reconstruction method:   ' + args['order'])
 print('  Hydro integrator:        ' + args['fint'])
 print('  Particle data:           ' + args['particle'])
+print('  Executable folder:       ' + args['exe'])
 print('  Magnetic fields:         ' + ('ON' if args['b'] else 'OFF'))
 print('  Special relativity:      ' + ('ON' if args['s'] else 'OFF'))
 print('  General relativity:      ' + ('ON' if args['g'] else 'OFF'))

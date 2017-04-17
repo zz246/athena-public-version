@@ -239,3 +239,16 @@ copy A.hydro_send_[nb.bufid] to B.hydro_recv_[nb.targetid]
      A.hydro_send_[2] to B.hydro_recv_[0]
 
 what is lid and gid?
+
+- 4/13/2017
+gid is the global id of a MeshBlock in an array, it was initially set in
+MeshBlockTree::GetMeshBlockList
+It might be reset in LoadBalance
+
+lid is the local id of a MeshBlock within a processor.
+ranklist[nbtotal], MeshBlocks are ordered in sequential processor by processor
+The rank of a MeshBlock is ranklist[gid].
+
+global id is continues within a rank.
+The start is is stored in nslist[rank].
+Therefore, the local id is gid - nslist[ranklist[gid]]

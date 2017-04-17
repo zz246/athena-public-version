@@ -74,7 +74,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin)
   EnrollUserHistoryOutput(1, TotalEnergy, "EN");
 
   //EnrollUserExplicitSourceFunction(MassPulseNewtonianCooling);
-  EnrollUserExplicitSourceFunction(LagrangianTracerAdvection);
+  //EnrollUserExplicitSourceFunction(LagrangianTracerAdvection);
 }
 
 //  \brief Problem generator for shallow water model
@@ -124,15 +124,17 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
         //gh_init(k,j,i) = 
 
         // add pertubation
-        phydro->u(IDN,k,j,i) += 2400.*cos(theta)*exp(-_sqr(3.*phi))
-          * exp(-_sqr(15.*((Prob::theta1+Prob::theta2)/2.-theta)));
+        phydro->u(IDN,k,j,i) += 240000.*cos(theta)*exp(-_sqr(10.*phi))
+          * exp(-_sqr(30.*((Prob::theta1+Prob::theta2)/2.-theta)));
       }
+
+  // add a Gaussian-shaped single storm (geostrophic balance)
 
   // storm and tracer particles
   //ppg = new ParticleGroup(this, "storm");
   //ppg->AddParticleGroup(this, "tracer");
   
-  // insert randomly distributed tracers over the domain
+  /* insert randomly distributed tracers over the domain
   ppg = new ParticleGroup(this, "tracer");
 
   Real lonmin = pmy_mesh->mesh_size.x1min;
@@ -147,7 +149,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
     tracer.x2 = asin(sin(latmin) + (sin(latmax) - sin(latmin))*ran2(&iseed));
     tracer.x1 = lonmin + (lonmax - lonmin)*ran2(&iseed);
     tracers.push_back(tracer);
-  }
+  }*/
 }
 
 void LagrangianTracerAdvection(MeshBlock *pmb, const Real time, const Real dt, const int step,
