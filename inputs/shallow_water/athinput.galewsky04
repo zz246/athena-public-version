@@ -1,7 +1,7 @@
 <comment>
 problem   = One layer shallow water model
 reference = 
-configure = --prob=galewsky04 --eos=shallow_water --coord=spherical_latlon -netcdf -mpi
+configure = --prob=galewsky04 --eos=shallow_water --coord=spherical_latlon --order=weno3 -netcdf -mpi
 
 <job>
 problem_id = galewsky04 # problem ID: basename of output filenames
@@ -16,7 +16,7 @@ variable   = prim      # variables to be output
 dt         = 1200.       # time increment between outputs
 
 <time>
-cfl_number = 0.3       # The Courant, Friedrichs, & Lewy (CFL) Number
+cfl_number = 0.4       # The Courant, Friedrichs, & Lewy (CFL) Number
 nlim       = -1        # cycle limit
 tlim       = 518400.0      # time limit
 #tlim       = -1.0      # time limit
@@ -29,7 +29,7 @@ ix1_bc     = periodic  # inner-X1 boundary flag
 ox1_bc     = periodic  # inner-X1 boundary flag
 
 nx2        = 256  # Number of zones in X2-direction (latitude)
-x2min      = -1.570796327     # minimum value of X2
+x2min      = 0.     # minimum value of X2
 x2max      = 1.570796327     # maximum value of X2
 ix2_bc     = reflecting # inner-X2 boundary flag
 ox2_bc     = reflecting # inner-X2 boundary flag
@@ -51,3 +51,5 @@ coriolis_accz = 7.292E-5
 <problem>
 umax  = 80.
 phim  = 98061.6
+theta0 = 1.047197551
+theta1 = 1.396263402
