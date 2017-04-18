@@ -21,8 +21,8 @@ LDLIBS := @LIBRARY_FLAGS@
 
 # Preliminary definitions
 
-EXE_DIR := @EXE_DIR@/
-EXECUTABLE := $(EXE_DIR)athena
+EXE_DIR := bin/
+EXECUTABLE := $(EXE_DIR)@EXE_NAME@
 SRC_FILES := $(wildcard src/*.cpp) \
 	     $(wildcard src/bvals/*.cpp) \
 	     $(wildcard src/coordinates/*.cpp) \

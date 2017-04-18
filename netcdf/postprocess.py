@@ -27,10 +27,15 @@ from netCDF4 import Dataset
 #nrb1, nrb2, nrb3 = 4, 4, 1
 #bx1, bx2, bx3    = 64, 32, 1
 
-folder      = '/home/chengli/athena-public-version/2d-jupole/'
-problem     = 'jupole'
-nrb1, nrb2, nrb3 = 4, 4, 1
-bx1, bx2, bx3    = 128, 128, 1
+#folder      = '/home/chengli/athena-public-version/2d-jupole/'
+#problem     = 'jupole'
+#nrb1, nrb2, nrb3 = 4, 4, 1
+#bx1, bx2, bx3    = 128, 128, 1
+
+folder      = '/home/chengli/athena-public-version/2d-swgv/'
+problem     = 'swgv'
+nrb1, nrb2, nrb3 = 2, 2, 1
+bx1, bx2, bx3    = 400, 100, 1
 
 num_blocks  = nrb1 * nrb2 * nrb3
 
