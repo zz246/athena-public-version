@@ -27,16 +27,22 @@ static Real gheq;
 static Real x1;
 static Real x2;
 
+static Real f0;
 static Real beta;
 
 // History output total energy
 Real ShallowWaterTotalEnergy(MeshBlock *pm, int iout);
 
+// Forcing
+void BetaPlaneForcing(MeshBlock *pmb, Real const time, Real const dt,
+    int const step, AthenaArray<Real> const& prim, AthenaArray<Real> const& bcc,
+    AthenaArray<Real>& cons);
+
 void Mesh::InitUserMeshData(ParameterInput *pin)
 {
   AllocateUserHistoryOutput(1);
   EnrollUserHistoryOutput(0, ShallowWaterTotalEnergy, "EN");
-  //EnrollUserExplicitSourceFunction(BetaPlaneForcing);
+  EnrollUserExplicitSourceFunction(BetaPlaneForcing);
 }
 
 //  \brief Problem generator for shallow water model
@@ -50,6 +56,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
   x1      = pin->GetReal("problem", "x1");
   x2      = pin->GetReal("problem", "x2");    
 
+  f0      = pin->GetReal("problem", "f0");
   beta    = pin->GetReal("problem", "beta");
 
   for (int k = ks; k <= ke; ++k)
@@ -66,6 +73,14 @@ void BetaPlaneForcing(MeshBlock *pmb, Real const time, Real const dt,
     int const step, AthenaArray<Real> const& prim, AthenaArray<Real> const& bcc,
     AthenaArray<Real>& cons)
 {
+  for (int k = pmb->ks; k <= pmb->ke; ++k)
+    for (int j = pmb->js; j <= pmb->je; ++j) {
+      Real x2 = pmb->pcoord->x2v(j);
+      for (int i = pmb->is; i <= pmb->ie; ++i) {
+        cons(IM1,k,j,i) += dt * (f0 + beta * x2) * prim(IDN,k,j,i) * prim(IM2,k,j,i);
+        cons(IM2,k,j,i) += - dt * (f0 + beta * x2) * prim(IDN,k,j,i) * prim(IM1,k,j,i);
+      }
+    }
 }
 
 Real ShallowWaterTotalEnergy(MeshBlock *pmb, int iout)
