@@ -77,7 +77,7 @@ void ParticleTableOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool fl
       fprintf(pfile,"# Athena++ data at time=%e",pm->time);
       fprintf(pfile,"  cycle=%d",pmb->pmy_mesh->ncycle);
       fprintf(pfile,"  particle=%s",ppg->name.c_str());
-      fprintf(pfile,"  number of particles=%d \n",ppg->data.size());
+      fprintf(pfile,"  number of particles=%d \n",ppg->q.size());
 
       // write x1, x2, x3 column headers
       fprintf(pfile,"#");
@@ -92,15 +92,15 @@ void ParticleTableOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool fl
       fprintf(pfile,"\n"); // terminate line
 
       // loop over all particles
-      for (size_t i = 0; i < ppg->data.size(); ++i) {
-        fprintf(pfile, output_params.data_format.c_str(), ppg->data[i].time);
-        fprintf(pfile, output_params.data_format.c_str(), ppg->data[i].x1);
-        fprintf(pfile, output_params.data_format.c_str(), ppg->data[i].x2);
-        fprintf(pfile, output_params.data_format.c_str(), ppg->data[i].x3);
+      for (size_t i = 0; i < ppg->q.size(); ++i) {
+        fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].time);
+        fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].x1);
+        fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].x2);
+        fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].x3);
         for (size_t j = 0; j < NREAL_PARTICLE_DATA; ++j)
-          fprintf(pfile, output_params.data_format.c_str(), ppg->data[i].rdata[j]);
+          fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].rdata[j]);
         for (size_t j = 0; j < NINT_PARTICLE_DATA; ++j)
-          fprintf(pfile, output_params.data_format.c_str(), ppg->data[i].idata[j]);
+          fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].idata[j]);
         fprintf(pfile,"\n"); // terminate line
       }
 
