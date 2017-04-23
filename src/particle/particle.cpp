@@ -9,6 +9,7 @@
 #include "../athena_arrays.hpp"
 #include "../mesh/mesh.hpp"
 #include "../coordinates/coordinates.hpp"
+#include "../hydro/hydro.hpp"
 #include "../athena_math.hpp" // _interpn
 
 // constructor, initializes data structure and parameters
@@ -17,6 +18,7 @@ ParticleGroup::ParticleGroup(MeshBlock *pmb, std::string _name):
 {
   prev = NULL;
   next = NULL;
+  particle_fn_ = pmb->pmy_mesh->particle_fn_;
 
   int ncells1 = pmb->block_size.nx1 + 2*(NGHOST);
   int ncells2 = 1, ncells3 = 1;
@@ -89,17 +91,16 @@ std::vector<Particle> const& ParticleGroup::GetParticle(std::string name) const
   return p->q;
 }
 
-void ParticleGroup::IntVelToMeshCenter(AthenaArray<Real> &u, Coordinates *pcoord) const
-{}
-
-void ParticleGroup::IntVelFromMeshCenter(AthenaArray<Real> const& w)
+void ParticleGroup::PropertyUpdate(Real time, Real dt)
 {
   AthenaArray<Real> v1, v2, v3;
   Real loc[3];
 
-  v1.InitWithShallowSlice(w,4,IM1,1);
-  v2.InitWithShallowSlice(w,4,IM2,1);
-  v3.InitWithShallowSlice(w,4,IM3,1);
+  Hydro *phydro = pmy_block->phydro;
+
+  v1.InitWithShallowSlice(phydro->w,4,IM1,1);
+  v2.InitWithShallowSlice(phydro->w,4,IM2,1);
+  v3.InitWithShallowSlice(phydro->w,4,IM3,1);
 
   for (size_t i = 0; i < q.size(); ++i) {
     loc[0] = q[i].x3;
@@ -116,5 +117,7 @@ void ParticleGroup::IntVelFromMeshCenter(AthenaArray<Real> const& w)
       _interpn(&q[i].v3, loc, v3.data(), coordinates_.data(), lengths_, 3);
     else
       q[i].v3 = 0.;
+
+    particle_fn_(q[i], time, dt);
   }
 }

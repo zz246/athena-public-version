@@ -20,25 +20,28 @@ struct Particle {
 };
 
 class ParticleGroup {
-  friend class ParticleTableOutput;
+  //friend class ParticleTableOutput;
 public:
   ParticleGroup(MeshBlock *pmb, std::string _name);
   ~ParticleGroup();
   
+  // data
   ParticleGroup *prev, *next;
+  MeshBlock* pmy_block;
+  std::vector<Particle> q;
+  std::string name;
+  int iqlast;
+  std::vector<int> bufid;
 
   // functions
   ParticleGroup* AddParticleGroup(MeshBlock *pmb, std::string name);
   std::vector<Particle>& GetParticle(std::string name);
   std::vector<Particle> const& GetParticle(std::string name) const;
-  void IntVelToMeshCenter(AthenaArray<Real> &u, Coordinates *pcoord) const;
-  void IntVelFromMeshCenter(AthenaArray<Real> const &w);
+  void PropertyUpdate(Real time, Real dt);
+
 
 protected:
-  MeshBlock* pmy_block;
-  std::vector<Particle> q;
-  std::string name;
-
+  ParticleUpdateFunc_t particle_fn_;
   std::vector<Real> coordinates_;
   int lengths_[3];
 };

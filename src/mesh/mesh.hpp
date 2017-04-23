@@ -171,6 +171,7 @@ class Mesh {
   friend class MeshRefinement;
   friend class HydroSourceTerms;
   friend class Hydro;
+  friend class ParticleGroup;
 #ifdef HDF5OUTPUT
   friend class ATHDF5Output;
 #endif
@@ -233,6 +234,7 @@ private:
   AMRFlagFunc_t AMRFlag_;
   TimeStepFunc_t UserTimeStep_;
   HistoryOutputFunc_t *user_history_func_;
+  ParticleUpdateFunc_t particle_fn_;
   void AllocateRealUserMeshDataField(int n);
   void AllocateIntUserMeshDataField(int n);
   void OutputMeshStructure(int dim);
@@ -245,6 +247,7 @@ private:
   void EnrollUserMeshGenerator(enum CoordinateDirection dir, MeshGenFunc_t my_mg);
   void EnrollUserExplicitSourceFunction(SrcTermFunc_t my_func);
   void EnrollUserTimeStepFunction(TimeStepFunc_t my_func);
+  void EnrollUserParticleUpdateFunction(ParticleUpdateFunc_t my_func);
   void AllocateUserHistoryOutput(int n);
   void EnrollUserHistoryOutput(int i, HistoryOutputFunc_t my_func, const char *name);
 };

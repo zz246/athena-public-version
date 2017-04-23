@@ -77,7 +77,7 @@ void ParticleTableOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool fl
       fprintf(pfile,"# Athena++ data at time=%e",pm->time);
       fprintf(pfile,"  cycle=%d",pmb->pmy_mesh->ncycle);
       fprintf(pfile,"  particle=%s",ppg->name.c_str());
-      fprintf(pfile,"  number of particles=%d \n",ppg->q.size());
+      fprintf(pfile,"  number of particles=%ld \n",ppg->q.size());
 
       // write x1, x2, x3 column headers
       fprintf(pfile,"#");

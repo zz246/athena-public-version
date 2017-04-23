@@ -29,6 +29,7 @@
 #include "../coordinates/coordinates.hpp"
 #include "../parameter_input.hpp"
 #include "../utils/buffer_utils.hpp"
+#include "../particle/particle.hpp"
 
 // MPI header
 #ifdef MPI_PARALLEL
@@ -232,10 +233,13 @@ BoundaryValues::BoundaryValues(MeshBlock *pmb, ParameterInput *pin)
   for(int i=0;i<56;i++){
     hydro_flag_[i]=BNDRY_WAITING;
     field_flag_[i]=BNDRY_WAITING;
+    particle_flag_[i]=BNDRY_WAITING;
     hydro_send_[i]=NULL;
     hydro_recv_[i]=NULL;
     field_send_[i]=NULL;
     field_recv_[i]=NULL;
+    particle_send_[i]=NULL;
+    particle_recv_[i]=NULL;
 #ifdef MPI_PARALLEL
     req_hydro_send_[i]=MPI_REQUEST_NULL;
     req_hydro_recv_[i]=MPI_REQUEST_NULL;
@@ -494,6 +498,15 @@ BoundaryValues::~BoundaryValues()
       }
     }
   }
+
+  // particle buffer destructor
+  for (int i = 0; i < pmb->pmy_mesh->maxneighbor_; ++i) {
+    if (particle_send_[i] != NULL)
+      delete[] particle_send_[i];
+    if (particle_recv_[i] != NULL)
+      delete[] particle_recv_[i];
+  }
+
   if(pmb->pmy_mesh->multilevel==true) {
     sarea_[0].DeleteAthenaArray();
     sarea_[1].DeleteAthenaArray();

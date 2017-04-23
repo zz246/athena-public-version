@@ -10,6 +10,7 @@
 
 // C++ headers
 #include <string>   // string
+#include <vector>
 
 // Athena++ classes headers
 #include "../athena.hpp"
@@ -29,6 +30,7 @@ class Coordinates;
 struct FaceField;
 struct NeighborBlock;
 struct PolarNeighborBlock;
+struct Particle;
 
 // identifiers for all 6 faces of a MeshBlock
 enum BoundaryFace {FACE_UNDEF=-1, INNER_X1=0, OUTER_X1=1, INNER_X2=2, OUTER_X2=3, 
@@ -164,6 +166,10 @@ public:
   void PolarSingleEMF(void);
   bool ReceiveEMFCorrection(void);
 
+  // particle boundaries
+  void SendParticleBuffers(std::vector<Particle> const& pt, std::vector<int> const& bufid, int iqlast);
+  void ReceiveParticleBuffers(std::vector<Particle>& pt, int iqlast);
+
 private:
   MeshBlock *pmy_block_;  // ptr to MeshBlock containing this BVals
 
@@ -173,6 +179,7 @@ private:
   bool firsttime_;
 
   enum BoundaryStatus hydro_flag_[56], field_flag_[56];
+  enum BoundaryStatus particle_flag_[56];
   enum BoundaryStatus flcor_flag_[6][2][2];
   enum BoundaryStatus emfcor_flag_[48];
   enum BoundaryStatus *emf_north_flag_;
@@ -183,6 +190,7 @@ private:
   Real *emfcor_send_[48], *emfcor_recv_[48];
   Real **emf_north_send_, **emf_north_recv_;
   Real **emf_south_send_, **emf_south_recv_;
+  Particle *particle_send_[56], *particle_recv_[56];
   AthenaArray<Real> sarea_[2];
   AthenaArray<Real> exc_;
   int num_north_polar_blocks_, num_south_polar_blocks_;

@@ -18,7 +18,7 @@
 #include "../hydro/hydro.hpp"
 #include "../field/field.hpp"
 #include "../mesh/mesh.hpp"
-#include "../utils/utils.hpp"
+#include "../utils/utils.hpp" // ran2
 #include "../particle/particle.hpp"
 
 // support functions
@@ -49,6 +49,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
   Real vlat = pin->GetReal("problem", "vlat")/180.*M_PI;
   Real vgh  = pin->GetReal("problem", "vgh");
   Real gh0  = pin->GetReal("problem", "gh0");
+  int  ntracers = pin->GetInteger("problem", "ntracers");
 
   Real radius = pcoord->x3v(0);
 
@@ -77,6 +78,24 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
         Real dist = radius * (M_PI/2. - theta);
         phydro->u(IDN,k,j,i) += vgh * exp(-0.5*_sqr(dist)/_sqr(vrad));
       }
+
+  // randomly distribute tracers over the domain
+  ppg = new ParticleGroup(this, "tracer");
+  long int iseed = -1;
+
+  Real x1min = pmy_mesh->mesh_size.x1min;
+  Real x1max = pmy_mesh->mesh_size.x1max;
+  Real x2min = pmy_mesh->mesh_size.x2min;
+  Real x2max = pmy_mesh->mesh_size.x2max;
+
+  std::vector<Particle>& tracers = ppg->GetParticle("tracer");
+  for (int n = 0; n < ntracers; ++n) {
+    Particle tracer;
+    tracer.time = 0.;
+    tracer.x2 = asin(sin(x2min) + (sin(x2max) - sin(x2min))*ran2(&iseed));
+    tracer.x1 = x1min + (x1max - x1min)*ran2(&iseed);
+    tracers.push_back(tracer);
+  }
 
   delete[] vlon;
 }

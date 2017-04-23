@@ -252,3 +252,29 @@ The rank of a MeshBlock is ranklist[gid].
 global id is continues within a rank.
 The start is is stored in nslist[rank].
 Therefore, the local id is gid - nslist[ranklist[gid]]
+
+- 4/22/2017
+steps to support particles
+1) need a function to update particle properties
+2) need a function to move particles to another MeshGrid if they are moved out of
+   the current MeshGrid
+3) In particle.hpp, particle.cpp, add function ParticleGroup::PropertyUpdate
+4) In task_list.hpp, time_integrator.cpp add schedule functions
+  a. ParticlePropertyUpdate, UPDATE_PT
+  b. ParticleSend, SEND_PT
+  c. ParticleReceive, RECEIVE_PT
+5) UPDATE_PT runs after RECV_HYD,
+   SEND_PT runs after UPDATE_PT,
+   RECEIVE_PT runs after UPDATE_PT
+6) TimeIntegratorTaskList::ParticlePropertyUpdate loops over all ParticleGroup 
+   and calls ParticleGroup::PropertyUpdate
+7) ParticleGroup::PropertyUpdate interpolate particle velocity from MeshGrid and apply
+   user particle property update function particle_fn_, which is copied from mesh->particle_fn_
+8) Declear particle_fn_ in mesh.hpp and enrollment function EnrollUserParticleUpdateFunction
+9) Declear function type ParticleUpdateFunc_t in athena.hpp
+10) TimeIntegratorTaskList::ParticleSend loops over all ParticleGroup
+   and calls BoundaryValue::SendParticleBuffers
+11) TimeIntegratorTaskList::ParticleReceive loops over all ParticleGroup
+   and calls BoundaryValue::ReceiveParticleBuffers
+12) bvals.hpp declares particle_send_, particle_receive_ and particle_flag_
+13) bvals.cpp implements SendParticleBuffers, ReceiveParticleBuffers

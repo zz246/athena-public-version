@@ -23,6 +23,7 @@
 #include "../bvals/bvals.hpp"
 #include "../eos/eos.hpp"
 #include "../hydro/srcterms/hydro_srcterms.hpp"
+#include "../particle/particle.hpp"
 
 //----------------------------------------------------------------------------------------
 //  TimeIntegratorTaskList constructor
@@ -118,6 +119,11 @@ TimeIntegratorTaskList::TimeIntegratorTaskList(ParameterInput *pin, Mesh *pm)
     } else {
       AddTimeIntegratorTask(CLEAR_ALLRECV,NEW_DT);
     }
+
+    // update particle properties
+    AddTimeIntegratorTask(UPDATE_PT,RECV_HYD);
+    AddTimeIntegratorTask(SEND_PT, UPDATE_PT);
+    AddTimeIntegratorTask(RECV_PT, UPDATE_PT);
 
   } // end of using namespace block
 }
@@ -245,6 +251,21 @@ void TimeIntegratorTaskList::AddTimeIntegratorTask(uint64_t id, uint64_t dep)
       task_list_[ntasks].TaskFunc=
         static_cast<enum TaskStatus (TaskList::*)(MeshBlock*,int)>
         (&TimeIntegratorTaskList::CheckRefinement);
+      break;
+    case (UPDATE_PT):
+      task_list_[ntasks].TaskFunc=
+        static_cast<enum TaskStatus (TaskList::*)(MeshBlock*,int)>
+        (&TimeIntegratorTaskList::ParticlePropertyUpdate);
+      break;
+    case (SEND_PT):
+      task_list_[ntasks].TaskFunc=
+        static_cast<enum TaskStatus (TaskList::*)(MeshBlock*,int)>
+        (&TimeIntegratorTaskList::ParticleSend);
+      break;
+    case (RECV_PT):
+      task_list_[ntasks].TaskFunc=
+        static_cast<enum TaskStatus (TaskList::*)(MeshBlock*,int)>
+        (&TimeIntegratorTaskList::ParticleReceive);
       break;
 
     default:
@@ -582,5 +603,48 @@ enum TaskStatus TimeIntegratorTaskList::CheckRefinement(MeshBlock *pmb, int step
   if (step != nsub_steps) return TASK_SUCCESS; // only do on last sub-step
 
   pmb->pmr->CheckRefinementCondition();
+  return TASK_SUCCESS;
+}
+
+// Translate the position of particles in the MeshBlock
+enum TaskStatus TimeIntegratorTaskList::ParticlePropertyUpdate(MeshBlock *pmb, int step)
+{
+  if (step != nsub_steps) return TASK_SUCCESS; // only do on last sub-step
+
+  ParticleGroup *ppg = pmb->ppg;
+
+  while (ppg != NULL) {
+    ppg->PropertyUpdate(pmb->pmy_mesh->time, pmb->pmy_mesh->dt);
+    ppg = ppg->next;
+  }
+
+  return TASK_SUCCESS;
+}
+
+enum TaskStatus TimeIntegratorTaskList::ParticleSend(MeshBlock *pmb, int step)
+{
+  if (step != nsub_steps) return TASK_SUCCESS;  // only do on last sub-step
+
+  ParticleGroup *ppg = pmb->ppg;
+
+  while (ppg != NULL) {
+    pmb->pbval->SendParticleBuffers(ppg->q, ppg->bufid, ppg->iqlast);
+    ppg = ppg->next;
+  }
+
+  return TASK_SUCCESS;
+}
+
+enum TaskStatus TimeIntegratorTaskList::ParticleReceive(MeshBlock *pmb, int step)
+{
+  if (step != nsub_steps) return TASK_SUCCESS;  // only do on last sub-step
+
+  ParticleGroup *ppg = pmb->ppg;
+
+  while (ppg != NULL) {
+    pmb->pbval->ReceiveParticleBuffers(ppg->q, ppg->iqlast);
+    ppg = ppg->next;
+  }
+
   return TASK_SUCCESS;
 }

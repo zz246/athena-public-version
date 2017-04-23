@@ -249,6 +249,7 @@ Mesh::Mesh(ParameterInput *pin, int mesh_test)
   AMRFlag_=NULL;
   UserSourceTerm_=NULL;
   UserTimeStep_=NULL;
+  particle_fn_ = NULL;
 
   // calculate the logical root level and maximum level
   for (root_level=0; (1<<root_level)<nbmax; root_level++);
@@ -1056,6 +1057,16 @@ void Mesh::EnrollUserExplicitSourceFunction(SrcTermFunc_t my_func)
 void Mesh::EnrollUserTimeStepFunction(TimeStepFunc_t my_func)
 {
   UserTimeStep_ = my_func;
+  return;
+}
+
+//----------------------------------------------------------------------------------------
+//! \fn void Mesh::EnrollUserParticleUpdateFunction(ParticleUpdateFunc_t my_func)
+//  \brief Enroll a user-defined particle update function
+
+void Mesh::EnrollUserParticleUpdateFunction(ParticleUpdateFunc_t my_func)
+{
+  particle_fn_ = my_func;
   return;
 }
 
