@@ -130,5 +130,12 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
     int ox1 = q[i].x1 < x1min ? -1 : (q[i].x1 > x1max ? 1 : 0);
     int ox2 = q[i].x2 < x2min ? -1 : (q[i].x2 > x2max ? 1 : 0);
     int ox3 = q[i].x3 < x3min ? -1 : (q[i].x3 > x3max ? 1 : 0);
+
+    if (!multilevel) {
+      fi1 = 0;
+      fi2 = 0;
+    } else {
+      // reserved implementation for multilevel
+    }
   }
 }

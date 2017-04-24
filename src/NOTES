@@ -278,3 +278,17 @@ steps to support particles
    and calls BoundaryValue::ReceiveParticleBuffers
 12) bvals.hpp declares particle_send_, particle_receive_ and particle_flag_
 13) bvals.cpp implements SendParticleBuffers, ReceiveParticleBuffers
+
+- 4/24/2017
+The boundary buffer is set in hydro_send_[nb.bufid], so what is nb.bufid?
+Or, if I know the logical position of the neighboring block (ox1,ox2,ox3,fi1,fi2), how
+to determine nb.bufid ? // nb.bufid is set by MeshBlock::SearchAndSetNeighbors
+bufid is [0, maxneighbor_) continuous
+from BoundaryValues::BoundaryValues
+for (int n = 0; n < pmb->pmy_mesh->maxneighbor_; ++n) {
+  ...
+  hydro_send_[n] = new Real[size];
+  hydro_send_[n] = new Real[size];
+  ...
+}
+use FindBufferID to find out bufid
