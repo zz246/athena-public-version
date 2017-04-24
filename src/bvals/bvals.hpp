@@ -167,8 +167,8 @@ public:
   bool ReceiveEMFCorrection(void);
 
   // particle boundaries
-  void SendParticleBuffers(std::vector<Particle> const& pt, std::vector<int> const& bufid, int iqlast);
-  void ReceiveParticleBuffers(std::vector<Particle>& pt, int iqlast);
+  void SendParticleBuffers(std::vector<Particle> const& pt, std::vector<int> const& bufid);
+  void ReceiveParticleBuffers(std::vector<Particle>& pt, std::vector<int>& bufid);
 
 private:
   MeshBlock *pmy_block_;  // ptr to MeshBlock containing this BVals

@@ -628,7 +628,7 @@ enum TaskStatus TimeIntegratorTaskList::ParticleSend(MeshBlock *pmb, int step)
   ParticleGroup *ppg = pmb->ppg;
 
   while (ppg != NULL) {
-    pmb->pbval->SendParticleBuffers(ppg->q, ppg->bufid, ppg->iqlast);
+    pmb->pbval->SendParticleBuffers(ppg->q, ppg->bufid);
     ppg = ppg->next;
   }
 
@@ -642,7 +642,7 @@ enum TaskStatus TimeIntegratorTaskList::ParticleReceive(MeshBlock *pmb, int step
   ParticleGroup *ppg = pmb->ppg;
 
   while (ppg != NULL) {
-    pmb->pbval->ReceiveParticleBuffers(ppg->q, ppg->iqlast);
+    pmb->pbval->ReceiveParticleBuffers(ppg->q, ppg->bufid);
     ppg = ppg->next;
   }
 

@@ -102,6 +102,13 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
   v2.InitWithShallowSlice(phydro->w,4,IM2,1);
   v3.InitWithShallowSlice(phydro->w,4,IM3,1);
 
+  Real x1min = pmy_block->block_size.x1min;
+  Real x1max = pmy_block->block_size.x1max;
+  Real x2min = pmy_block->block_size.x2min;
+  Real x2max = pmy_block->block_size.x2max;
+  Real x3min = pmy_block->block_size.x3min;
+  Real x3max = pmy_block->block_size.x3max;
+
   for (size_t i = 0; i < q.size(); ++i) {
     loc[0] = q[i].x3;
     loc[1] = q[i].x2;
@@ -119,5 +126,9 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
       q[i].v3 = 0.;
 
     particle_fn_(q[i], time, dt);
+
+    int ox1 = q[i].x1 < x1min ? -1 : (q[i].x1 > x1max ? 1 : 0);
+    int ox2 = q[i].x2 < x2min ? -1 : (q[i].x2 > x2max ? 1 : 0);
+    int ox3 = q[i].x3 < x3min ? -1 : (q[i].x3 > x3max ? 1 : 0);
   }
 }

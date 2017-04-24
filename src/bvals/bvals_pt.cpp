@@ -35,10 +35,10 @@
 #include <mpi.h>
 #endif
 
-void BoundaryValues::SendParticleBuffers(std::vector<Particle> const& pt, std::vector<int> const& bufid, int iqlast)
+void BoundaryValues::SendParticleBuffers(std::vector<Particle> const& pt, std::vector<int> const& bufid)
 {
 }
 
-void BoundaryValues::ReceiveParticleBuffers(std::vector<Particle>& pt, int iqlast)
+void BoundaryValues::ReceiveParticleBuffers(std::vector<Particle>& pt, std::vector<int>& bufid)
 {
 }

@@ -26,11 +26,10 @@ public:
   ~ParticleGroup();
   
   // data
-  ParticleGroup *prev, *next;
   MeshBlock* pmy_block;
-  std::vector<Particle> q;
   std::string name;
-  int iqlast;
+  ParticleGroup *prev, *next;
+  std::vector<Particle> q;
   std::vector<int> bufid;
 
   // functions
@@ -38,7 +37,6 @@ public:
   std::vector<Particle>& GetParticle(std::string name);
   std::vector<Particle> const& GetParticle(std::string name) const;
   void PropertyUpdate(Real time, Real dt);
-
 
 protected:
   ParticleUpdateFunc_t particle_fn_;
