@@ -44,7 +44,7 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
     else
       q[i].v3 = 0.;
 
-    int alive = particle_fn_(q[i], time, dt);
+    bool alive = particle_fn_(q[i], time, dt);
 
     ox1 = q[i].x1 < x1min ? -1 : (q[i].x1 > x1max ? 1 : 0);
     ox2 = q[i].x2 < x2min ? -1 : (q[i].x2 > x2max ? 1 : 0);
@@ -59,17 +59,14 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
 
     int id = FindBufferID(ox1, ox2, ox3, fi1, fi2, pmy_block->pmy_mesh->maxneighbor_);
 
-    if (id != -1) { // particle moved out of domain
-      tmp = q[i];
-      q[i] = q[j];
-      q[j] = tmp;
-      if (alive)
-        bufid.push_back(id);
-      else
-        bufid.push_back(-1);
-      j--;
-    } else {  // particle in domain
+    if (alive && (id == -1)) { // particle is alive and inside domain
       i++;
+    } else {  // particle deseased or moved out of the domain
+      tmp = q[i];
+      q[i] = q[j - 1];
+      q[j - 1] = tmp;
+      bufid.push_back(alive ? id : -1); // Note that bufid is reversed
+      j--;
     }
   }
 }

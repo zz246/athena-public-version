@@ -15,8 +15,12 @@ class ParticleTableOutput;
 struct Particle {
   Real time, x1, x2, x3;
   Real v1, v2, v3;
+#if NREAL_PARTICLE_DATA > 0
   Real rdata[NREAL_PARTICLE_DATA];
+#endif
+#if NINT_PARTICLE_DATA > 0
   int  idata[NINT_PARTICLE_DATA];
+#endif
 };
 
 class ParticleGroup {

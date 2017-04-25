@@ -238,8 +238,6 @@ BoundaryValues::BoundaryValues(MeshBlock *pmb, ParameterInput *pin)
     hydro_recv_[i]=NULL;
     field_send_[i]=NULL;
     field_recv_[i]=NULL;
-    particle_send_[i]=NULL;
-    particle_recv_[i]=NULL;
 #ifdef MPI_PARALLEL
     req_hydro_send_[i]=MPI_REQUEST_NULL;
     req_hydro_recv_[i]=MPI_REQUEST_NULL;
@@ -497,14 +495,6 @@ BoundaryValues::~BoundaryValues()
         delete[] emf_south_recv_[n];
       }
     }
-  }
-
-  // particle buffer destructor
-  for (int i = 0; i < pmb->pmy_mesh->maxneighbor_; ++i) {
-    if (particle_send_[i] != NULL)
-      delete[] particle_send_[i];
-    if (particle_recv_[i] != NULL)
-      delete[] particle_recv_[i];
   }
 
   if(pmb->pmy_mesh->multilevel==true) {
