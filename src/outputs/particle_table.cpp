@@ -97,10 +97,15 @@ void ParticleTableOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool fl
         fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].x1);
         fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].x2);
         fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].x3);
-        for (size_t j = 0; j < NREAL_PARTICLE_DATA; ++j)
-          fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].rdata[j]);
-        for (size_t j = 0; j < NINT_PARTICLE_DATA; ++j)
-          fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].idata[j]);
+        #if NREAL_PARTICLE_DATA > 0
+          for (size_t j = 0; j < NREAL_PARTICLE_DATA; ++j)
+            fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].rdata[j]);
+        #endif
+
+        #if NINT_PARTICLE_DATA > 0
+          for (size_t j = 0; j < NINT_PARTICLE_DATA; ++j)
+            fprintf(pfile, output_params.data_format.c_str(), ppg->q[i].idata[j]);
+        #endif
         fprintf(pfile,"\n"); // terminate line
       }
 

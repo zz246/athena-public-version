@@ -40,6 +40,10 @@ void BoundaryValues::SendParticleBuffers(std::vector<Particle> const& pt, std::v
   MeshBlock *pmb = pmy_block_;
   int mylevel = pmb->loc.level;
 
+  // clear send buffer
+  for (int i = 0; i < pmb->pmy_mesh->maxneighbor_; ++i)
+    particle_send_[i].clear();
+
   for (size_t i = 0; i < bufid.size(); ++i) {
     size_t j = pt.size() - i - 1;
     if (bufid[i] != -1) // if this particle is alive
@@ -51,8 +55,8 @@ void BoundaryValues::SendParticleBuffers(std::vector<Particle> const& pt, std::v
 
     if (nb.rank == Globals::my_rank) {  // on the same process
       MeshBlock *pbl = pmb->pmy_mesh->FindMeshBlock(nb.gid);
-      hydro_recv_[nb.targetid] = hydro_send_[nb.bufid];
-      pbl->pbval->particle_flag_[nb.targetid] = BNDY_ARRIVED;
+      particle_recv_[nb.targetid] = particle_send_[nb.bufid];
+      pbl->pbval->particle_flag_[nb.targetid] = BNDRY_ARRIVED;
     }
 #ifdef MPI_PARALLEL
     else // MPI
@@ -69,6 +73,10 @@ bool BoundaryValues::ReceiveParticleBuffers(std::vector<Particle>& pt, std::vect
   pt.resize(pt.size() - bufid.size());
   bufid.clear();
 
+  // clear receiver buffer
+  for (int i = 0; i < pmb->pmy_mesh->maxneighbor_; ++i)
+    particle_recv_[i].clear();
+
   for (int n = 0; n < pmb->nneighbor; ++n) {
     NeighborBlock &nb = pmb->neighbor[n];
 
@@ -76,7 +84,7 @@ bool BoundaryValues::ReceiveParticleBuffers(std::vector<Particle>& pt, std::vect
     if (particle_flag_[nb.bufid] == BNDRY_WAITING) {
       if (nb.rank == Globals::my_rank) { // on the same process
         flag = false;
-        continue
+        continue;
       }
 #ifdef MPI_PARALLEL
       else { // MPI boundary
@@ -92,11 +100,21 @@ bool BoundaryValues::ReceiveParticleBuffers(std::vector<Particle>& pt, std::vect
 #endif
     }
 
-    // remember special considerations for periodic boundary condition
+    // the sign of nb.ox? might be flipped
+    for (std::vector<Particle>::iterator it = particle_recv_[nb.bufid].begin();
+        it != particle_recv_[nb.bufid].end(); ++it) {
+      if (pmb->block_bcs[(nb.ox1+1)>>1] == PERIODIC_BNDRY) // 0:INNER_X1, 1:OUTER_X1
+        it->x1 += nb.ox1*(pmb->pmy_mesh->mesh_size.x1max - pmb->pmy_mesh->mesh_size.x1min);
 
-    for (size_t i = 0; i < hydro_recv_[nb.bufid].size(); ++i)
-      pt.push_back(hydro_recv_[i]);
-    hydro_recv_[nb.bufid].clear();
+      if (pmb->block_bcs[2+(nb.ox2+1)>>1] == PERIODIC_BNDRY) // 2:INNER_X2, 3:OUTER_X2
+        it->x2 += nb.ox2*(pmb->pmy_mesh->mesh_size.x2max - pmb->pmy_mesh->mesh_size.x2min);
+
+      if (pmb->block_bcs[4+(nb.ox3+1)>>1] == PERIODIC_BNDRY) // 4:INNER_X3, 5:OUTER_X3
+        it->x3 += nb.ox3*(pmb->pmy_mesh->mesh_size.x3max - pmb->pmy_mesh->mesh_size.x3min);
+
+      // copy particle into the particle chain
+      pt.push_back(*it);
+    }
   }
 
   return flag;

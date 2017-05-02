@@ -241,6 +241,8 @@ BoundaryValues::BoundaryValues(MeshBlock *pmb, ParameterInput *pin)
 #ifdef MPI_PARALLEL
     req_hydro_send_[i]=MPI_REQUEST_NULL;
     req_hydro_recv_[i]=MPI_REQUEST_NULL;
+    req_particle_send_[i]=MPI_REQUEST_NULL;
+    req_particle_recv_[i]=MPI_REQUEST_NULL;
 #endif
   }
   for(int i=0;i<48;i++){

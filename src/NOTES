@@ -292,3 +292,26 @@ for (int n = 0; n < pmb->pmy_mesh->maxneighbor_; ++n) {
   ...
 }
 use FindBufferID to find out bufid
+
+- 4/25/2017
+things to implement:
+1) periodic boundary conditions
+2) MPI_type commit
+3) MPI_Isend, MPI_Irecv, MPI_Iprob arguments
+
+- 4/26/2017
+PHY_BVAL is scheduled after CON2PRIM is complete
+PHY_BVAL calls TimeIntegratorTaskList::PhysicalBoundary
+PhysicalBoundary calls pbval->ApplyPhysicalBoundaries()
+ApplyPhysicalBoundary check whether boundary is NULL and calls BoundaryFunction_
+BoundaryFunction_ is NULL for periodic, and is set to pmy_mesh->BoundaryFunctions_ if
+USER_BNDRY is set
+boundary type is stored in pmb->block_bcs[INNER_X1]
+particle periodic boundary condition is set in BoundaryValues::ReceiveParticleBuffers
+particle  reflective boundary condition in set in ParticleGroup::PropertyUpdate
+
+- 4/27/2017
+add MPI request in bvals/bvals.hpp/cpp
+
+- 4/30/2017
+test particle without support for MPI

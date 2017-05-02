@@ -203,6 +203,7 @@ private:
   MPI_Request req_emfcor_send_[48], req_emfcor_recv_[48];
   MPI_Request *req_emf_north_send_, *req_emf_north_recv_;
   MPI_Request *req_emf_south_send_, *req_emf_south_recv_;
+  MPI_Request req_particle_send_[56], req_particle_recv_[56];
 #endif
 
   BValFunc_t BoundaryFunction_[6];

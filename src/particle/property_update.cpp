@@ -11,18 +11,19 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
   AthenaArray<Real> v1, v2, v3;
   Real loc[3];
 
-  Hydro *phydro = pmy_block->phydro;
+  MeshBlock *pmb = pmy_block;
+  Hydro *phydro = pmb->phydro;
 
   v1.InitWithShallowSlice(phydro->w,4,IM1,1);
   v2.InitWithShallowSlice(phydro->w,4,IM2,1);
   v3.InitWithShallowSlice(phydro->w,4,IM3,1);
 
-  Real x1min = pmy_block->block_size.x1min;
-  Real x1max = pmy_block->block_size.x1max;
-  Real x2min = pmy_block->block_size.x2min;
-  Real x2max = pmy_block->block_size.x2max;
-  Real x3min = pmy_block->block_size.x3min;
-  Real x3max = pmy_block->block_size.x3max;
+  Real x1min = pmb->block_size.x1min;
+  Real x1max = pmb->block_size.x1max;
+  Real x2min = pmb->block_size.x2min;
+  Real x2max = pmb->block_size.x2max;
+  Real x3min = pmb->block_size.x3min;
+  Real x3max = pmb->block_size.x3max;
 
   size_t i = 0, j = q.size();
   int ox1, ox2, ox3, fi1, fi2;
@@ -44,20 +45,34 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
     else
       q[i].v3 = 0.;
 
-    bool alive = particle_fn_(q[i], time, dt);
+    bool alive = particle_fn_(pmb, q[i], time, dt);
+
+    // take care of reflective boundary condition
+    if (q[i].x1 < x1min && pmb->block_bcs[0] == REFLECTING_BNDRY)
+      q[i].x1 = 2*x1min - q[i].x1;
+    if (q[i].x1 > x1max && pmb->block_bcs[1] == REFLECTING_BNDRY)
+      q[i].x1 = 2*x1max - q[i].x1;
+    if (q[i].x2 < x2min && pmb->block_bcs[2] == REFLECTING_BNDRY)
+      q[i].x2 = 2*x2min - q[i].x2;
+    if (q[i].x2 > x2max && pmb->block_bcs[3] == REFLECTING_BNDRY)
+      q[i].x2 = 2*x2max - q[i].x2;
+    if (q[i].x3 < x3min && pmb->block_bcs[4] == REFLECTING_BNDRY)
+      q[i].x3 = 2*x3min - q[i].x3;
+    if (q[i].x3 > x3max && pmb->block_bcs[5] == REFLECTING_BNDRY)
+      q[i].x3 = 2*x3max - q[i].x3;
 
     ox1 = q[i].x1 < x1min ? -1 : (q[i].x1 > x1max ? 1 : 0);
     ox2 = q[i].x2 < x2min ? -1 : (q[i].x2 > x2max ? 1 : 0);
     ox3 = q[i].x3 < x3min ? -1 : (q[i].x3 > x3max ? 1 : 0);
 
-    if (!pmy_block->pmy_mesh->multilevel) {
+    if (!pmb->pmy_mesh->multilevel) {
       fi1 = 0;
       fi2 = 0;
     } else {
       // reserved implementation for multilevel
     }
 
-    int id = FindBufferID(ox1, ox2, ox3, fi1, fi2, pmy_block->pmy_mesh->maxneighbor_);
+    int id = FindBufferID(ox1, ox2, ox3, fi1, fi2, pmb->pmy_mesh->maxneighbor_);
 
     if (alive && (id == -1)) { // particle is alive and inside domain
       i++;
