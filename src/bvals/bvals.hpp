@@ -167,8 +167,9 @@ public:
   bool ReceiveEMFCorrection(void);
 
   // particle boundaries
-  void SendParticleBuffers(std::vector<Particle> const& pt, std::vector<int> const& bufid);
-  bool ReceiveParticleBuffers(std::vector<Particle>& pt, std::vector<int>& bufid);
+  void DetachParticle(std::vector<Particle> const& pt, std::vector<int> const& bufid);
+  void SendParticleBuffers();
+  bool ReceiveParticleBuffers(std::vector<Particle>& pt, std::vector<int>& bufid, int pid);
 
 private:
   MeshBlock *pmy_block_;  // ptr to MeshBlock containing this BVals
@@ -191,7 +192,9 @@ private:
   Real **emf_north_send_, **emf_north_recv_;
   Real **emf_south_send_, **emf_south_recv_;
   std::vector<Particle> particle_send_[56];
+  std::vector<size_t>   particle_num_send_[56];
   std::vector<Particle> particle_recv_[56];
+  std::vector<size_t>   particle_num_recv_[56];
   AthenaArray<Real> sarea_[2];
   AthenaArray<Real> exc_;
   int num_north_polar_blocks_, num_south_polar_blocks_;

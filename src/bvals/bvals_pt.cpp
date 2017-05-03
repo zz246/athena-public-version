@@ -35,27 +35,30 @@
 #include <mpi.h>
 #endif
 
-void BoundaryValues::SendParticleBuffers(std::vector<Particle> const& pt, std::vector<int> const& bufid)
+void BoundaryValues::DetachParticle(
+  std::vector<Particle> const& pt, std::vector<int> const& bufid)
+{
+  for (size_t i = 0; i < bufid.size(); ++i)
+    if (bufid[i] >= 0) {
+      size_t j = pt.size() - i - 1;
+      particle_send_[bufid[i]].push_back(pt[j]);
+    }
+
+  for (int i = 0; i < pmy_block_->pmy_mesh->maxneighbor_; ++i)
+    particle_num_send_[i].push_back(particle_send_[i].size());
+}
+
+void BoundaryValues::SendParticleBuffers()
 {
   MeshBlock *pmb = pmy_block_;
-  int mylevel = pmb->loc.level;
-
-  // clear send buffer
-  for (int i = 0; i < pmb->pmy_mesh->maxneighbor_; ++i)
-    particle_send_[i].clear();
-
-  for (size_t i = 0; i < bufid.size(); ++i) {
-    size_t j = pt.size() - i - 1;
-    if (bufid[i] != -1) // if this particle is alive
-      particle_send_[bufid[i]].push_back(pt[j]);
-  }
 
   for (int n = 0; n < pmb->nneighbor; ++n) {
     NeighborBlock &nb = pmb->neighbor[n];
 
     if (nb.rank == Globals::my_rank) {  // on the same process
       MeshBlock *pbl = pmb->pmy_mesh->FindMeshBlock(nb.gid);
-      particle_recv_[nb.targetid] = particle_send_[nb.bufid];
+      pbl->pbval->particle_recv_[nb.targetid] = particle_send_[nb.bufid];
+      pbl->pbval->particle_num_recv_[nb.targetid] = particle_num_send_[nb.bufid];
       pbl->pbval->particle_flag_[nb.targetid] = BNDRY_ARRIVED;
     }
 #ifdef MPI_PARALLEL
@@ -65,17 +68,15 @@ void BoundaryValues::SendParticleBuffers(std::vector<Particle> const& pt, std::v
   }
 }
 
-bool BoundaryValues::ReceiveParticleBuffers(std::vector<Particle>& pt, std::vector<int>& bufid)
+bool BoundaryValues::ReceiveParticleBuffers(
+  std::vector<Particle>& pt, std::vector<int>& bufid, int pid)
 {
   MeshBlock *pmb = pmy_block_;
   bool flag = true;
 
+  // clear 
   pt.resize(pt.size() - bufid.size());
   bufid.clear();
-
-  // clear receiver buffer
-  for (int i = 0; i < pmb->pmy_mesh->maxneighbor_; ++i)
-    particle_recv_[i].clear();
 
   for (int n = 0; n < pmb->nneighbor; ++n) {
     NeighborBlock &nb = pmb->neighbor[n];
@@ -99,10 +100,11 @@ bool BoundaryValues::ReceiveParticleBuffers(std::vector<Particle>& pt, std::vect
       }
 #endif
     }
-
-    // the sign of nb.ox? might be flipped
-    for (std::vector<Particle>::iterator it = particle_recv_[nb.bufid].begin();
-        it != particle_recv_[nb.bufid].end(); ++it) {
+    
+    // attach particle to the particle chain
+    std::vector<Particle>::iterator begin = particle_recv_[nb.bufid].begin();
+    std::vector<Particle>::iterator it = pid == 0 ? begin : begin + particle_num_recv_[nb.bufid][pid - 1];
+    for (; it != begin + particle_num_recv_[nb.bufid][pid]; ++it) {
       if (pmb->block_bcs[(nb.ox1+1)>>1] == PERIODIC_BNDRY) // 0:INNER_X1, 1:OUTER_X1
         it->x1 += nb.ox1*(pmb->pmy_mesh->mesh_size.x1max - pmb->pmy_mesh->mesh_size.x1min);
 
@@ -112,9 +114,19 @@ bool BoundaryValues::ReceiveParticleBuffers(std::vector<Particle>& pt, std::vect
       if (pmb->block_bcs[4+(nb.ox3+1)>>1] == PERIODIC_BNDRY) // 4:INNER_X3, 5:OUTER_X3
         it->x3 += nb.ox3*(pmb->pmy_mesh->mesh_size.x3max - pmb->pmy_mesh->mesh_size.x3min);
 
-      // copy particle into the particle chain
+      if (it->x1 < pmb->block_size.x1min || it->x1 > pmb->block_size.x1max
+          || it->x2 < pmb->block_size.x2min || it->x2 > pmb->block_size.x2max
+          || it->x3 < pmb->block_size.x3min | it->x3 > pmb->block_size.x3max) {
+        flag = false;
+        std::stringstream msg;
+        msg << "### FATAL ERROR in ReceiveParticleBuffers: particle moved outof MeshBlock limits" << std::endl;
+        throw std::runtime_error(msg.str().c_str());
+      }
+
       pt.push_back(*it);
     }
+
+    particle_flag_[nb.bufid] = BNDRY_COMPLETED; // completed
   }
 
   return flag;

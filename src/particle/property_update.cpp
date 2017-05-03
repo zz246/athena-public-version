@@ -45,7 +45,12 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
     else
       q[i].v3 = 0.;
 
-    bool alive = particle_fn_(pmb, q[i], time, dt);
+    bool alive;
+
+    if (particle_fn_ != NULL)
+      alive = particle_fn_(pmb, q[i], time, dt);
+    else
+      alive = true;
 
     // take care of reflective boundary condition
     if (q[i].x1 < x1min && pmb->block_bcs[0] == REFLECTING_BNDRY)

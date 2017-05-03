@@ -109,22 +109,21 @@ TimeIntegratorTaskList::TimeIntegratorTaskList(ParameterInput *pin, Mesh *pm)
       }
     }
 
+    // update particle properties
+    AddTimeIntegratorTask(UPDATE_PT,RECV_HYD);
+    AddTimeIntegratorTask(SEND_PT, UPDATE_PT);
+    AddTimeIntegratorTask(RECV_PT, UPDATE_PT);
+
     // everything else
     AddTimeIntegratorTask(PHY_BVAL,CON2PRIM);
     AddTimeIntegratorTask(USERWORK,PHY_BVAL);
     AddTimeIntegratorTask(NEW_DT,USERWORK);
     if(pm->adaptive==true) {
       AddTimeIntegratorTask(AMR_FLAG,USERWORK);
-      AddTimeIntegratorTask(CLEAR_ALLRECV,AMR_FLAG);
+      AddTimeIntegratorTask(CLEAR_ALLRECV,AMR_FLAG|RECV_PT);
     } else {
-      AddTimeIntegratorTask(CLEAR_ALLRECV,NEW_DT);
+      AddTimeIntegratorTask(CLEAR_ALLRECV,NEW_DT|RECV_PT);
     }
-
-    // update particle properties
-    AddTimeIntegratorTask(UPDATE_PT,RECV_HYD);
-    AddTimeIntegratorTask(SEND_PT, UPDATE_PT);
-    AddTimeIntegratorTask(RECV_PT, UPDATE_PT);
-
   } // end of using namespace block
 }
 
@@ -628,9 +627,11 @@ enum TaskStatus TimeIntegratorTaskList::ParticleSend(MeshBlock *pmb, int step)
   ParticleGroup *ppg = pmb->ppg;
 
   while (ppg != NULL) {
-    pmb->pbval->SendParticleBuffers(ppg->q, ppg->bufid);
+    pmb->pbval->DetachParticle(ppg->q, ppg->bufid);
     ppg = ppg->next;
   }
+
+  pmb->pbval->SendParticleBuffers();
 
   return TASK_SUCCESS;
 }
@@ -641,10 +642,17 @@ enum TaskStatus TimeIntegratorTaskList::ParticleReceive(MeshBlock *pmb, int step
 
   ParticleGroup *ppg = pmb->ppg;
 
+  int pid = 0;
+  bool ret = true;
+
   while (ppg != NULL) {
-    pmb->pbval->ReceiveParticleBuffers(ppg->q, ppg->bufid);
+    ret = ret && pmb->pbval->ReceiveParticleBuffers(ppg->q, ppg->bufid, pid);
     ppg = ppg->next;
+    pid++;
   }
 
-  return TASK_SUCCESS;
+  if (ret)
+    return TASK_SUCCESS;
+  else
+    return TASK_FAIL;
 }

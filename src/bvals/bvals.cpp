@@ -949,6 +949,7 @@ void BoundaryValues::ClearBoundaryForInit(bool cons_and_field)
   for(int n=0;n<pmb->nneighbor;n++) {
     NeighborBlock& nb = pmb->neighbor[n];
     hydro_flag_[nb.bufid] = BNDRY_WAITING;
+    particle_flag_[nb.bufid] = BNDRY_WAITING;
     if (MAGNETIC_FIELDS_ENABLED)
       field_flag_[nb.bufid] = BNDRY_WAITING;
     if (GENERAL_RELATIVITY and pmb->pmy_mesh->multilevel)
@@ -983,6 +984,11 @@ void BoundaryValues::ClearBoundaryAll(void)
   for(int n=0;n<pmb->nneighbor;n++) {
     NeighborBlock& nb = pmb->neighbor[n];
     hydro_flag_[nb.bufid] = BNDRY_WAITING;
+    particle_flag_[nb.bufid] = BNDRY_WAITING;
+    particle_send_[nb.bufid].clear();
+    particle_num_send_[nb.bufid].clear();
+    particle_recv_[nb.bufid].clear();
+    particle_num_recv_[nb.bufid].clear();
     if(nb.type==NEIGHBOR_FACE)
       flcor_flag_[nb.fid][nb.fi2][nb.fi1] = BNDRY_WAITING;
     if (MAGNETIC_FIELDS_ENABLED) {
