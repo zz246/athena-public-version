@@ -5,6 +5,17 @@
 #include "../utils/utils.hpp" // ran2
 #include "../particle/particle.hpp"
 
+bool ParticleTranslate(MeshBlock *pmb, Particle &pt, Real const time, Real const dt)
+{
+  pt.x1 += pt.v1 * dt;
+  pt.x2 += pt.v2 * dt;
+  return true;
+}
+
+void Mesh::InitUserMeshData(ParameterInput *pin)
+{
+  EnrollUserParticleUpdateFunction(ParticleTranslate);
+}
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin)
 {

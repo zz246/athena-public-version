@@ -45,7 +45,7 @@ void ParticleTableOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool fl
     ParticleGroup *ppg = pmb->ppg;
     // Loop over ParticleGroup
     while (ppg != NULL) {
-      // create filename: "file_basename"+"."+"name"+"."+"blockid"+"."+"file_id"+"."+?????+".pat",
+      // create filename: "file_basename"+"."+"name"+"."+"blockid"+"."+?????+".pat",
       // where ????? = 5-digit file_number
       std::string fname;
       char number[6];
@@ -58,8 +58,6 @@ void ParticleTableOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool fl
       fname.append(ppg->name);
       fname.append(".");
       fname.append(blockid);
-      fname.append(".");
-      fname.append(output_params.file_id);
       fname.append(".");
       fname.append(number);
       fname.append(".pat");
