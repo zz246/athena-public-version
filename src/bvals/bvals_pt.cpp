@@ -119,14 +119,15 @@ bool BoundaryValues::ReceiveParticleBuffers(
           || it->x3 < pmb->block_size.x3min | it->x3 > pmb->block_size.x3max) {
         flag = false;
         std::stringstream msg;
-        msg << "### FATAL ERROR in ReceiveParticleBuffers: particle moved outof MeshBlock limits" << std::endl;
+        msg << "### FATAL ERROR in ReceiveParticleBuffers: particle moved out of MeshBlock limits" << std::endl;
         throw std::runtime_error(msg.str().c_str());
       }
 
       pt.push_back(*it);
     }
 
-    particle_flag_[nb.bufid] = BNDRY_COMPLETED; // completed
+    if (pid == particle_num_recv_[nb.bufid].size() - 1)
+      particle_flag_[nb.bufid] = BNDRY_COMPLETED; // completed
   }
 
   return flag;

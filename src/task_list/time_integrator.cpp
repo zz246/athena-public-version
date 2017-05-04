@@ -605,7 +605,6 @@ enum TaskStatus TimeIntegratorTaskList::CheckRefinement(MeshBlock *pmb, int step
   return TASK_SUCCESS;
 }
 
-// Translate the position of particles in the MeshBlock
 enum TaskStatus TimeIntegratorTaskList::ParticlePropertyUpdate(MeshBlock *pmb, int step)
 {
   if (step != nsub_steps) return TASK_SUCCESS; // only do on last sub-step
@@ -631,7 +630,8 @@ enum TaskStatus TimeIntegratorTaskList::ParticleSend(MeshBlock *pmb, int step)
     ppg = ppg->next;
   }
 
-  pmb->pbval->SendParticleBuffers();
+  if (pmb->ppg != NULL)
+    pmb->pbval->SendParticleBuffers();
 
   return TASK_SUCCESS;
 }
