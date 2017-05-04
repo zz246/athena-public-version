@@ -15,7 +15,11 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
         phydro->u(IM1,k,j,i) = 1.;
       }
 
-  ppg = new ParticleGroup(this, "tracer");
+  ppg = new ParticleGroup(this, "tracer1");
+  ppg->AddParticleGroup(this, "tracer2");
+
+  std::vector<Particle>& tr1 = ppg->GetParticle("tracer1");
+  std::vector<Particle>& tr2 = ppg->GetParticle("tracer2");
 
   Real x1min = pmy_mesh->mesh_size.x1min;
   Real x1max = pmy_mesh->mesh_size.x1max;
@@ -30,7 +34,8 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
     tracer.x1 = x1min + (x1max - x1min) * ran2(&iseed);
     tracer.x2 = 0.;
     tracer.x3 = 0.;
-    ppg->q.push_back(tracer);
+    tr1.push_back(tracer);
+    tr2.push_back(tracer);
   }
 
   Real size = block_size.x1max - block_size.x1min;
@@ -52,6 +57,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
 
     tracer.x2 = 0.;
     tracer.x3 = 0.;
-    ppg->q.push_back(tracer);
+    tr1.push_back(tracer);
+    tr2.push_back(tracer);
   }
 }
