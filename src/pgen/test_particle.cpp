@@ -5,7 +5,7 @@
 #include "../utils/utils.hpp" // ran2
 #include "../particle/particle.hpp"
 
-bool ParticleTranslate(MeshBlock *pmb, Particle &pt, Real const time, Real const dt)
+bool ParticleTranslate(MeshBlock *pmb, Particle &pt, int cid[3], Real const time, Real const dt)
 {
   pt.x1 += pt.v1 * dt;
   pt.x2 += pt.v2 * dt;

@@ -41,7 +41,7 @@ public:
 
 protected:
   ParticleUpdateFunc_t particle_fn_;
-  std::vector<Real> coordinates_;
+  Real *coordinates_;
   int lengths_[3];
 };
 

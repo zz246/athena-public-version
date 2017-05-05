@@ -10,6 +10,7 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
 {
   AthenaArray<Real> v1, v2, v3;
   Real loc[3];
+  int  cid[3] = {0, 0, 0};
 
   MeshBlock *pmb = pmy_block;
   Hydro *phydro = pmb->phydro;
@@ -33,22 +34,26 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
     loc[0] = q[i].x3;
     loc[1] = q[i].x2;
     loc[2] = q[i].x1;
-    _interpn(&q[i].v1, loc, v1.data(), coordinates_.data(), lengths_, 3);
 
+    _interpn(&q[i].v1, loc, v1.data(), coordinates_, lengths_, 3);
     if (lengths_[1] > 1)
-      _interpn(&q[i].v2, loc, v2.data(), coordinates_.data(), lengths_, 3);
+      _interpn(&q[i].v2, loc, v2.data(), coordinates_, lengths_, 3);
     else
       q[i].v2 = 0.;
-
     if (lengths_[0] > 1)
-      _interpn(&q[i].v3, loc, v3.data(), coordinates_.data(), lengths_, 3);
+      _interpn(&q[i].v3, loc, v3.data(), coordinates_, lengths_, 3);
     else
       q[i].v3 = 0.;
 
-    bool alive;
+    if (lengths_[0] > 1)
+      cid[0] = pmy_block->ks + _locate(coordinates_, loc[0], lengths_[0]);
+    if (lengths_[1] > 1)
+      cid[1] = pmy_block->js + _locate(coordinates_ + lengths_[0], loc[1], lengths_[1]);
+    cid[2] = pmy_block->is + _locate(coordinates_ + lengths_[0] + lengths_[1], loc[2], lengths_[2]);
 
+    bool alive;
     if (particle_fn_ != NULL)
-      alive = particle_fn_(pmb, q[i], time, dt);
+      alive = particle_fn_(pmb, q[i], cid, time, dt);
     else
       alive = true;
 

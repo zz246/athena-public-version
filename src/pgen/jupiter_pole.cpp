@@ -31,13 +31,15 @@ void CartesianToSphericalLatlon(Real *a, Real *b, Real *c, Real x, Real y, Real 
 Real TotalAbsoluteAngularMomentum(MeshBlock *pm, int iout);
 Real TotalEnergy(MeshBlock *pm, int iout);
 
+// particle functions
+bool ParticleTranslate(MeshBlock *pmb, Particle &pt, int cid[3], Real const time, Real const dt);
+
 void Mesh::InitUserMeshData(ParameterInput *pin)
 {
   AllocateUserHistoryOutput(2);
   EnrollUserHistoryOutput(0, TotalAbsoluteAngularMomentum, "AM");
   EnrollUserHistoryOutput(1, TotalEnergy, "EN");
-
-  //EnrollUserExplicitSourceFunction(LagrangianTracerAdvection);
+  EnrollUserParticleUpdateFunction(ParticleTranslate);
 }
 
 //  \brief Problem generator for shallow water model
@@ -81,23 +83,44 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
 
   // randomly distribute tracers over the domain
   ppg = new ParticleGroup(this, "tracer");
-  long int iseed = -1;
+  long int iseed = -1 - Globals::my_rank;
 
-  Real x1min = pmy_mesh->mesh_size.x1min;
-  Real x1max = pmy_mesh->mesh_size.x1max;
-  Real x2min = pmy_mesh->mesh_size.x2min;
-  Real x2max = pmy_mesh->mesh_size.x2max;
+  Real x1min = block_size.x1min;
+  Real x1max = block_size.x1max;
+  Real x2min = block_size.x2min;
+  Real x2max = block_size.x2max;
 
-  std::vector<Particle>& tracers = ppg->GetParticle("tracer");
-  for (int n = 0; n < ntracers; ++n) {
+  /*for (int n = 0; n < ntracers; ++n) {
     Particle tracer;
     tracer.time = 0.;
+    tracer.x3 = 0.;
     tracer.x2 = asin(sin(x2min) + (sin(x2max) - sin(x2min))*ran2(&iseed));
-    tracer.x1 = x1min + (x1max - x1min)*ran2(&iseed);
-    tracers.push_back(tracer);
+    tracer.x1 = x1min + (x1max - x1min) * ran2(&iseed);
+    ppg->q.push_back(tracer);
+  }*/
+
+  Real lat, lon;
+  for (int n2 = 0; n2 < sqrt(ntracers); ++n2)
+    for (int n1 = 0; n1 < sqrt(ntracers); ++n1) {
+      Particle tracer;
+      tracer.x1 = x1min + (x1max - x1min)*(n1/sqrt(ntracers));
+      tracer.x2 = asin(sin(x2min) + (sin(x2max) - sin(x2min))*(n2/sqrt(ntracers)));
+      tracer.x3 = 0.;
+      RotateEquatorToPole(&lat, &lon, tracer.x2, tracer.x1);
+      tracer.time = lat;
+      ppg->q.push_back(tracer);
   }
 
   delete[] vlon;
+}
+
+bool ParticleTranslate(MeshBlock *pmb, Particle &pt, int cid[3], Real const time, Real const dt)
+{
+  Real radius = pmb->pcoord->x3v(0),
+       lat = pmb->pcoord->x2v(cid[1]);
+  pt.x1 += pt.v1 * dt / (radius * cos(lat));
+  pt.x2 += pt.v2 * dt / radius;
+  return true;
 }
 
 void RotatePoleToEquator(Real *theta1, Real *phi1, Real theta0, Real phi0)

@@ -32,11 +32,6 @@
 #include <netcdf.h> // nc_[create|close], nc_enddef, nc_strerror,
                     // nc_def_[dim|var], nc_put_var_float, nc_put_vara_float
 
-#define _throw_nc_err_ \
-  { msg << "### FATAL ERROR in function [NetcdfOutput::WriteOutputFile]" \
-        <<std::endl<< nc_strerror(err) <<std::endl; \
-    throw std::runtime_error(msg.str().c_str()); }
-
 //----------------------------------------------------------------------------------------
 // NetcdfOutput constructor
 // destructor - not needed for this derived class
@@ -96,8 +91,7 @@ void NetcdfOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool flag)
     std::stringstream msg;
     int err, ifile;
 
-    if (nc_create(fname.c_str(), NC_CLASSIC_MODEL, &ifile) != NC_NOERR) 
-      _throw_nc_err_;
+    nc_create(fname.c_str(), NC_CLASSIC_MODEL, &ifile);
 
     // 2. coordinate structure
     int ncells1 = out_ie - out_is + 1;
@@ -110,65 +104,56 @@ void NetcdfOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool flag)
     // 2. define coordinate
     int idt, idx1, idx2, idx3, idx1b, idx2b, idx3b;
     // time
-    if (nc_def_dim(ifile, "time", NC_UNLIMITED, &idt) != NC_NOERR)
-      _throw_nc_err_;
+    nc_def_dim(ifile, "time", NC_UNLIMITED, &idt);
 
-    if (nc_def_dim(ifile, "x1", ncells1, &idx1) != NC_NOERR)
-      _throw_nc_err_;
+    nc_def_dim(ifile, "x1", ncells1, &idx1);
     if (ncells1 > 1)
-      if (nc_def_dim(ifile, "x1b", ncoord1, &idx1b) != NC_NOERR)
-        _throw_nc_err_;
+      nc_def_dim(ifile, "x1b", ncoord1, &idx1b);
 
-    if (nc_def_dim(ifile, "x2", ncells2, &idx2) != NC_NOERR)
-      _throw_nc_err_;
+    nc_def_dim(ifile, "x2", ncells2, &idx2);
     if (ncells2 > 1)
-      if (nc_def_dim(ifile, "x2b", ncoord2, &idx2b) != NC_NOERR)
-        _throw_nc_err_;
+      nc_def_dim(ifile, "x2b", ncoord2, &idx2b);
 
-    if (nc_def_dim(ifile, "x3", ncells3, &idx3) != NC_NOERR)
-      _throw_nc_err_;
+    nc_def_dim(ifile, "x3", ncells3, &idx3);
     if (ncells3 > 1)
-      if (nc_def_dim(ifile, "x3b", ncoord3, &idx3b) != NC_NOERR)
-        _throw_nc_err_;
+      nc_def_dim(ifile, "x3b", ncoord3, &idx3b);
 
     // 3. define variables
     int ivt, ivx1, ivx2, ivx3, ivx1b, ivx2b, ivx3b;
     int loc[4] = {pmb->loc.lx1, pmb->loc.lx2, pmb->loc.lx3, pmb->loc.level};
-    /*int pos1[4] = {out_is, out_ie, 0, 0},
-        pos2[4] = {out_js, out_je, 0, 0},
-        pos3[4] = {out_ks, out_ke, 0, 0};
-    */
+    int pos[4];
 
-    if (nc_def_var(ifile, "time", NC_FLOAT, 1, &idt, &ivt) != NC_NOERR)
-      _throw_nc_err_;
+    nc_def_var(ifile, "time", NC_FLOAT, 1, &idt, &ivt);
 
-    if (nc_def_var(ifile, "x1", NC_FLOAT, 1, &idx1, &ivx1) != NC_NOERR)
-      _throw_nc_err_;
-    if (ncells1 > 1)
-      if (nc_def_var(ifile, "x1b", NC_FLOAT, 1, &idx1b, &ivx1b) != NC_NOERR)
-        _throw_nc_err_;
-    //if (nc_put_att_int(ifile, ivx1, "domain_decomposition", NC_INT, 4, pos1) 
-    //    != NC_NOERR)
-    //  _throw_nc_err_;
+    nc_def_var(ifile, "x1", NC_FLOAT, 1, &idx1, &ivx1);
+    pos[0] = 1; pos[1] = pmb->pmy_mesh->mesh_size.nx1;
+    pos[2] = ncells1 * loc[0] + 1; pos[3] = ncells1 * (loc[0] + 1);
+    nc_put_att_int(ifile, ivx1, "domain_decomposition", NC_INT, 4, pos);
+    if (ncells1 > 1) {
+      nc_def_var(ifile, "x1b", NC_FLOAT, 1, &idx1b, &ivx1b);
+      pos[0]--; pos[2]--;
+      nc_put_att_int(ifile, ivx1b, "domain_decomposition", NC_INT, 4, pos);
+    }
 
-    if (nc_def_var(ifile, "x2", NC_FLOAT, 1, &idx2, &ivx2) != NC_NOERR)
-      _throw_nc_err_;
-    if (ncells2 > 1)
-      if (nc_def_var(ifile, "x2b", NC_FLOAT, 1, &idx2b, &ivx2b) != NC_NOERR)
-        _throw_nc_err_;
-    //if (nc_put_att_int(ifile, ivx2, "domain_decomposition", NC_INT, 4, pos2)
-    //    != NC_NOERR)
-    //  _throw_nc_err_;
+    nc_def_var(ifile, "x2", NC_FLOAT, 1, &idx2, &ivx2);
+    pos[0] = 1; pos[1] = pmb->pmy_mesh->mesh_size.nx2;
+    pos[2] = ncells2 * loc[1] + 1; pos[3] = ncells2 * (loc[1] + 1);
+    nc_put_att_int(ifile, ivx2, "domain_decomposition", NC_INT, 4, pos);
+    if (ncells2 > 1) {
+      nc_def_var(ifile, "x2b", NC_FLOAT, 1, &idx2b, &ivx2b);
+      pos[0]--; pos[2]--;
+      nc_put_att_int(ifile, ivx2b, "domain_decomposition", NC_INT, 4, pos);
+    }
 
-    if (nc_def_var(ifile, "x3", NC_FLOAT, 1, &idx3, &ivx3) != NC_NOERR)
-      _throw_nc_err_;
-    if (ncells3 > 1)
-      if (nc_def_var(ifile, "x3b", NC_FLOAT, 1, &idx3b, &ivx3b) != NC_NOERR)
-        _throw_nc_err_;
-
-    if (nc_put_att_int(ifile, NC_GLOBAL, "logical_location", NC_INT, 4, loc)
-        != NC_NOERR)
-      _throw_nc_err_;
+    nc_def_var(ifile, "x3", NC_FLOAT, 1, &idx3, &ivx3);
+    pos[0] = 1; pos[1] = pmb->pmy_mesh->mesh_size.nx3;
+    pos[2] = ncells3 * loc[2] + 1; pos[3] = ncells3 * (loc[2] + 1);
+    nc_put_att_int(ifile, ivx3, "domain_decomposition", NC_INT, 4, pos);
+    if (ncells3 > 1) {
+      nc_def_var(ifile, "x3b", NC_FLOAT, 1, &idx3b, &ivx3b);
+      pos[0]--; pos[2]--;
+      nc_put_att_int(ifile, ivx3b, "domain_decomposition", NC_INT, 4, pos);
+    }
 
     OutputData *pdata = pfirst_data_;
 
@@ -190,22 +175,19 @@ void NetcdfOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool flag)
     pdata = pfirst_data_;
     while (pdata != NULL) {
       if (pdata->type == "SCALARS") {
-        if (nc_def_var(ifile, pdata->name.c_str(), NC_FLOAT, 4, iaxis, ivar++) != NC_NOERR)
-          _throw_nc_err_;
+        nc_def_var(ifile, pdata->name.c_str(), NC_FLOAT, 4, iaxis, ivar++);
       } else { // VECTORS
         for (int n = 0; n < pdata->data.GetDim4(); ++n) {
           char c[16]; sprintf(c, "%d", n + 1);
           std::string name = pdata->name + c;
-          if (nc_def_var(ifile, name.c_str(), NC_FLOAT, 4, iaxis, ivar++) != NC_NOERR)
-            _throw_nc_err_;
+          nc_def_var(ifile, name.c_str(), NC_FLOAT, 4, iaxis, ivar++);
         }
       }
 
       pdata = pdata->pnext;
     }
 
-    if (nc_enddef(ifile) != NC_NOERR)
-      _throw_nc_err_;
+    nc_enddef(ifile);
 
     // 4. write variables
     float *data = new float[ncells1 * ncells2 * ncells3];
@@ -213,43 +195,36 @@ void NetcdfOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool flag)
     size_t count[4] = {1, ncells3, ncells2, ncells1};
 
     float time = (float)pm->time;
-    if (nc_put_vara_float(ifile, ivt, start, count, &time) != NC_NOERR)
-      _throw_nc_err_;
+    nc_put_vara_float(ifile, ivt, start, count, &time);
 
     for (int i = out_is; i <= out_ie; ++i)
       data[i-out_is] = (float)(pmb->pcoord->x1v(i));
-    if (nc_put_var_float(ifile, ivx1, data) != NC_NOERR)
-      _throw_nc_err_;
+    nc_put_var_float(ifile, ivx1, data);
 
     if (ncells1 > 1) {
       for (int i = out_is; i <= out_ie + 1; ++i)
         data[i-out_is] = (float)(pmb->pcoord->x1f(i));
-      if (nc_put_var_float(ifile, ivx1b, data) != NC_NOERR)
-        _throw_nc_err_;
+      nc_put_var_float(ifile, ivx1b, data);
     }
 
     for (int j = out_js; j <= out_je; ++j)
       data[j-out_js] = (float)(pmb->pcoord->x2v(j));
-    if (nc_put_var_float(ifile, ivx2, data) != NC_NOERR)
-      _throw_nc_err_;
+    nc_put_var_float(ifile, ivx2, data);
 
     if (ncells2 > 1) {
       for (int j = out_js; j <= out_je + 1; ++j)
         data[j-out_js] = (float)(pmb->pcoord->x2f(j));
-      if (nc_put_var_float(ifile, ivx2b, data) != NC_NOERR)
-        _throw_nc_err_;
+      nc_put_var_float(ifile, ivx2b, data);
     }
 
     for (int k = out_ks; k <= out_ke; ++k)
       data[k-out_ks] = (float)(pmb->pcoord->x3v(k));
-    if (nc_put_var_float(ifile, ivx3, data) != NC_NOERR)
-      _throw_nc_err_;
+    nc_put_var_float(ifile, ivx3, data);
 
     if (ncells3 > 1) {
       for (int k = out_ks; k <= out_ke + 1; ++k)
         data[k-out_ks] = (float)(pmb->pcoord->x1f(k));
-      if (nc_put_var_float(ifile, ivx3b, data) != NC_NOERR)
-        _throw_nc_err_;
+      nc_put_var_float(ifile, ivx3b, data);
     }
 
     ivar = var_ids;
@@ -262,16 +237,14 @@ void NetcdfOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool flag)
           for (int j = out_js; j <= out_je; ++j)
             for (int i = out_is; i <= out_ie; ++i, ++it)
               *it = (float)pdata->data(n, k, j, i);
-        if (nc_put_vara_float(ifile, *(ivar++), start, count, data) != NC_NOERR)
-          _throw_nc_err_;
+        nc_put_vara_float(ifile, *(ivar++), start, count, data);
       }
 
       pdata = pdata->pnext;
     }
 
     // 5. close nc file
-    if (nc_close(ifile) != NC_NOERR)
-      _throw_nc_err_;
+    nc_close(ifile);
 
     ClearOutputData();  // required when LoadOutputData() is used.
     delete [] data;
@@ -288,7 +261,5 @@ void NetcdfOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool flag)
 
   return;
 }
-
-#undef _throw_nc_err_
 
 #endif // NETCDFOUTPUT

@@ -23,7 +23,7 @@ ParticleGroup::ParticleGroup(MeshBlock *pmb, std::string _name):
   if (pmb->block_size.nx2 > 1) ncells2 = pmb->block_size.nx2 + 2*(NGHOST);
   if (pmb->block_size.nx3 > 1) ncells3 = pmb->block_size.nx3 + 2*(NGHOST);
 
-  coordinates_.resize(ncells3 + ncells2 + ncells1);
+  coordinates_ = new Real [ncells3 + ncells2 + ncells1];
 
   for (int k = 0; k < ncells3; ++k)
     coordinates_[k] = pmb->pcoord->x3v(k);
@@ -40,6 +40,7 @@ ParticleGroup::ParticleGroup(MeshBlock *pmb, std::string _name):
 // destructor
 ParticleGroup::~ParticleGroup()
 {
+  delete[] coordinates_;
   if (prev != NULL) prev->next = next;
   if (next != NULL) next->prev = prev;
 }
