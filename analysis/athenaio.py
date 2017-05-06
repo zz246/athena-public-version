@@ -30,7 +30,7 @@ def GetNumberBlocks(ext, path = './'):
   return len(set(map(GetBlockId, fnames)))
 
 def GetNumberFrames(ext, path = './'):
-  fnames = glob('?????.' + ext)
+  fnames = glob('*.?????.' + ext)
   return len(set(map(GetFrameId, fnames)))
 
 def GetNcVariable(fname, vname, path = './'):
@@ -39,11 +39,16 @@ def GetNcVariable(fname, vname, path = './'):
 
 def CombineNcFiles(case, path = './', out = ''):
   print 'combining netcdf files ...'
+  if out == '':
+    outfile = case
+  else:
+    outfile = case + '-' + out
   nblocks = GetNumberBlocks('nc', path)
   for i in range(nblocks):
     print 'processing block %d ...' % i
     files = path + case + '.block%d.*.*.nc' % i
-    target = case + '.nc.%04d' % i
+    target = outfile + '.nc.%04d' % i
+    print target
     subprocess.call('ncrcat -h %s -o %s' % (files, target), shell = True)
     subprocess.call('ncatted -O -a %s,%s,%c,%c,%d %s' 
       % ('NumFilesInSet', 'global', 'c', 'i', nblocks, target),
@@ -52,14 +57,11 @@ def CombineNcFiles(case, path = './', out = ''):
   #if not os.path.exists('mppnccombine'):
   #  subprocess.call('gcc -O -o mppnccombine mppnccombine.c -lnetcdf', shell = True)
 
-  if out == '':
-    subprocess.call('./mppnccombine %s.nc' % case, shell = True)
-  else:
-    subprocess.call('./mppnccombine %s-%s.nc' % (case, out), shell = True)
+  subprocess.call('./mppnccombine %s.nc' % outfile, shell = True)
 
-  for f in glob(case + '.nc.????'):
+  for f in glob(outfile + '.nc.????'):
     os.remove(f)
-  print 'finished.'
+  print 'Output file writted in ', outfile + '.nc'
 
 def ReadParticleAscii(case, name, path = './'):
   fnames = glob(path + '%s.%s.block*.?????.pat' % (case, name))
@@ -84,24 +86,44 @@ def ReadParticleAscii(case, name, path = './'):
 
   return data[::nblocks], time[::nblocks]
 
-if __name__ == '__main__':
-  opts, args = getopt.getopt(sys.argv[1:], 'c:d:o', ['combine', 'dir', 'output'])
+def CombinePatFiles(case, name, path = './', out = ''):
+  print 'combining pat files ...'
+  if out == '':
+    outfile = case
+  else:
+    outfile = case + '-' + out
+  data, time = ReadParticleAscii(case, name, path)
 
-  task_nc_combine = False
+
+if __name__ == '__main__':
+  opts, args = getopt.getopt(sys.argv[1:], 'c:d:no:p:', ['case', 'dir', 'netcdf',
+    'output', 'particle'])
+
+  task_nc_combine   = False
+  task_pat_combine  = False
+
   case_name = ''
   path_name = './'
-  out_name = ''
+  out_name  = ''
+  particle_name = ''
 
   for opt, arg in opts:
-    if opt in ('-c', '--combine'):
-      task_nc_combine = True
+    if opt in ['-c', '--case']:
       case_name = arg
-    elif opt in ('-d', '--dir'):
+    elif opt in ['-d', '--dir']:
       path_name = arg
-    elif opt in ('-o', '--output'):
+    elif opt in ['-n', '--netcdf']:
+      task_nc_combine = True
+    elif opt in ['-o', '--output']:
       out_name = arg
+    elif opt in ['-p', '--pat']:
+      task_pat_combine = True
+      particle_name = arg
     else:
       assert False, 'unhandled option'
 
   if task_nc_combine:
     CombineNcFiles(case_name, path = path_name, out = out_name)
+
+  if task_pat_combine:
+    CombinePatFiles(case_name, particle_name, path = path_name, out = out_name)

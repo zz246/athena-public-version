@@ -233,11 +233,13 @@ BoundaryValues::BoundaryValues(MeshBlock *pmb, ParameterInput *pin)
   for(int i=0;i<56;i++){
     hydro_flag_[i]=BNDRY_WAITING;
     field_flag_[i]=BNDRY_WAITING;
-    particle_flag_[i]=BNDRY_WAITING;
+    particle_flag_[i]=BNDRY_INIT;
     hydro_send_[i]=NULL;
     hydro_recv_[i]=NULL;
     field_send_[i]=NULL;
     field_recv_[i]=NULL;
+    particle_num_send_[i]=NULL;
+    particle_num_recv_[i]=NULL;
 #ifdef MPI_PARALLEL
     req_hydro_send_[i]=MPI_REQUEST_NULL;
     req_hydro_recv_[i]=MPI_REQUEST_NULL;
@@ -484,6 +486,14 @@ BoundaryValues::~BoundaryValues()
       }
     }
   }
+
+  for (int i = 0; i < pmb->pmy_mesh->maxneighbor_; ++i) {
+    if (particle_num_send_[i] != NULL)
+      delete[] particle_num_send_[i];
+    if (particle_num_recv_[i] != NULL)
+      delete[] particle_num_recv_[i];
+  }
+
   if (MAGNETIC_FIELDS_ENABLED) {
     if (num_north_polar_blocks_ > 0) {
       for (int n = 0; n < num_north_polar_blocks_; ++n) {
@@ -622,6 +632,13 @@ void BoundaryValues::Initialize(void)
     }
   }
 
+  // initialize particle
+  if (ParticleGroup::ntotal > 0)
+    for (int i = 0; i < pmb->pmy_mesh->maxneighbor_; ++i) {
+      particle_num_send_[i] = new int [ParticleGroup::ntotal];
+      particle_num_recv_[i] = new int [ParticleGroup::ntotal];
+    }
+
 #ifdef MPI_PARALLEL
   // Initialize non-polar neighbor communications to other ranks
   for(int n=0;n<pmb->nneighbor;n++) {
@@ -656,6 +673,16 @@ void BoundaryValues::Initialize(void)
       tag=CreateBvalsMPITag(pmb->lid, TAG_HYDRO, nb.bufid);
       MPI_Recv_init(hydro_recv_[nb.bufid],rsize,MPI_ATHENA_REAL,
                     nb.rank,tag,MPI_COMM_WORLD,&req_hydro_recv_[nb.bufid]);
+
+      // particle
+      if (ParticleGroup::ntotal > 0) {
+        tag = CreateBvalsMPITag(nb.lid, TAG_PARTICLE_NUM, nb.targetid);
+        MPI_Send_init(particle_num_send_[nb.bufid], ParticleGroup::ntotal, MPI_INT,
+                      nb.rank, tag, MPI_COMM_WORLD, &req_particle_num_send_[nb.bufid]);
+        tag = CreateBvalsMPITag(pmb->lid, TAG_PARTICLE_NUM, nb.bufid);
+        MPI_Recv_init(particle_num_recv_[nb.bufid], ParticleGroup::ntotal, MPI_INT,
+                      nb.rank, tag, MPI_COMM_WORLD, &req_particle_num_recv_[nb.bufid]);
+      }
 
       // flux correction
       if(pmb->pmy_mesh->multilevel==true && nb.type==NEIGHBOR_FACE) {
@@ -916,6 +943,8 @@ void BoundaryValues::StartReceivingAll(void)
            MPI_Start(&req_emfcor_recv_[nb.bufid]);
         }
       }
+      if (pmb->ppg != NULL) 
+        MPI_Start(&req_particle_num_recv_[nb.bufid]);
     }
   }
   if (MAGNETIC_FIELDS_ENABLED) {
@@ -949,7 +978,6 @@ void BoundaryValues::ClearBoundaryForInit(bool cons_and_field)
   for(int n=0;n<pmb->nneighbor;n++) {
     NeighborBlock& nb = pmb->neighbor[n];
     hydro_flag_[nb.bufid] = BNDRY_WAITING;
-    particle_flag_[nb.bufid] = BNDRY_WAITING;
     if (MAGNETIC_FIELDS_ENABLED)
       field_flag_[nb.bufid] = BNDRY_WAITING;
     if (GENERAL_RELATIVITY and pmb->pmy_mesh->multilevel)
@@ -984,11 +1012,9 @@ void BoundaryValues::ClearBoundaryAll(void)
   for(int n=0;n<pmb->nneighbor;n++) {
     NeighborBlock& nb = pmb->neighbor[n];
     hydro_flag_[nb.bufid] = BNDRY_WAITING;
-    particle_flag_[nb.bufid] = BNDRY_WAITING;
+    particle_flag_[nb.bufid] = BNDRY_INIT;
     particle_send_[nb.bufid].clear();
-    particle_num_send_[nb.bufid].clear();
     particle_recv_[nb.bufid].clear();
-    particle_num_recv_[nb.bufid].clear();
     if(nb.type==NEIGHBOR_FACE)
       flcor_flag_[nb.fid][nb.fi2][nb.fi1] = BNDRY_WAITING;
     if (MAGNETIC_FIELDS_ENABLED) {
@@ -999,6 +1025,7 @@ void BoundaryValues::ClearBoundaryAll(void)
 #ifdef MPI_PARALLEL
     if(nb.rank!=Globals::my_rank) {
       MPI_Wait(&req_hydro_send_[nb.bufid],MPI_STATUS_IGNORE); // Wait for Isend
+      MPI_Wait(&req_particle_num_send_[nb.bufid],MPI_STATUS_IGNORE); // Wait for Isend
       if(nb.type==NEIGHBOR_FACE && nb.level<pmb->loc.level)
         MPI_Wait(&req_flcor_send_[nb.fid],MPI_STATUS_IGNORE); // Wait for Isend
       if (MAGNETIC_FIELDS_ENABLED) {

@@ -110,9 +110,10 @@ TimeIntegratorTaskList::TimeIntegratorTaskList(ParameterInput *pin, Mesh *pm)
     }
 
     // update particle properties
-    AddTimeIntegratorTask(UPDATE_PT,RECV_HYD);
+    //AddTimeIntegratorTask(UPDATE_PT,RECV_HYD);
+    AddTimeIntegratorTask(UPDATE_PT, NONE);
     AddTimeIntegratorTask(SEND_PT, UPDATE_PT);
-    AddTimeIntegratorTask(RECV_PT, UPDATE_PT);
+    AddTimeIntegratorTask(RECV_PT, UPDATE_PT|START_ALLRECV);
 
     // everything else
     AddTimeIntegratorTask(PHY_BVAL,CON2PRIM);
@@ -624,10 +625,12 @@ enum TaskStatus TimeIntegratorTaskList::ParticleSend(MeshBlock *pmb, int step)
   if (step != nsub_steps) return TASK_SUCCESS;  // only do on last sub-step
 
   ParticleGroup *ppg = pmb->ppg;
+  int pid = 0;
 
   while (ppg != NULL) {
-    pmb->pbval->DetachParticle(ppg->q, ppg->bufid);
+    pmb->pbval->DetachParticle(ppg->q, ppg->bufid, pid);
     ppg = ppg->next;
+    pid++;
   }
 
   if (pmb->ppg != NULL)
@@ -641,7 +644,6 @@ enum TaskStatus TimeIntegratorTaskList::ParticleReceive(MeshBlock *pmb, int step
   if (step != nsub_steps) return TASK_SUCCESS;  // only do on last sub-step
 
   ParticleGroup *ppg = pmb->ppg;
-
   int pid = 0;
   bool ret = true;
 

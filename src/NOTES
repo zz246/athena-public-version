@@ -315,3 +315,17 @@ add MPI request in bvals/bvals.hpp/cpp
 
 - 4/30/2017
 test particle without support for MPI
+
+- 5/6/2017
+implement MPI for particle
+1) need to send two arrays, one is the number count for each particle group, the other
+is the actual data
+  athena.hpp -> add TAG_PARTICLE, TAG_PARTICLE_NUM
+2) create MPI_type
+  particle.hpp/cpp -> MPI_PARTICLE
+3) particle_num_send_ and particle_num_recv_ are fixed sized arrays once ParticleGroup
+is initialized
+  bvals.hpp -> int *particle_num_send_[56], *particle_num_recv_[56]
+Send particle has two steps. One is to send the number of particles. status is
+BNDRY_INIT. The other is the real data. status is BNDRY_WAITING
+4) using MPI_Send_init for particle_num_send_, MPI_Isend for particle_send

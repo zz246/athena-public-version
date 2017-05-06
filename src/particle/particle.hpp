@@ -9,6 +9,11 @@
 #include "../athena.hpp"
 #include "../athena_arrays.hpp"
 
+// MPI header
+#ifdef MPI_PARALLEL
+#include <mpi.h>
+#endif
+
 class MeshBlock;
 class ParticleTableOutput;
 
@@ -16,9 +21,18 @@ struct Particle {
   Real time, x1, x2, x3;
   Real v1, v2, v3;
 
-  Real rdata[NREAL_PARTICLE_DATA];
-  int  idata[NINT_PARTICLE_DATA];
+  #if NREAL_PARTICLE_DATA > 0
+    Real rdata[NREAL_PARTICLE_DATA];
+  #endif
+
+  #if NINT_PARTICLE_DATA > 0
+    int  idata[NINT_PARTICLE_DATA];
+  #endif
 };
+
+#ifdef MPI_PARALLEL
+extern MPI_Datatype MPI_PARTICLE;
+#endif
 
 class ParticleGroup {
   //friend class ParticleTableOutput;
@@ -32,6 +46,7 @@ public:
   ParticleGroup *prev, *next;
   std::vector<Particle> q;
   std::vector<int> bufid;
+  static int ntotal;
 
   // functions
   ParticleGroup* AddParticleGroup(MeshBlock *pmb, std::string name);

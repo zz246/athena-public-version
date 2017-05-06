@@ -44,7 +44,7 @@ enum BoundaryFlag {BLOCK_BNDRY=-1, BNDRY_UNDEF=0, REFLECTING_BNDRY=1, OUTFLOW_BN
 enum NeighborType {NEIGHBOR_NONE, NEIGHBOR_FACE, NEIGHBOR_EDGE, NEIGHBOR_CORNER};
 
 // identifiers for status of MPI boundary communications
-enum BoundaryStatus {BNDRY_WAITING, BNDRY_ARRIVED, BNDRY_COMPLETED};
+enum BoundaryStatus {BNDRY_INIT, BNDRY_WAITING, BNDRY_ARRIVED, BNDRY_COMPLETED};
 
 // flags to mark which variables are reversed across polar boundary
 static bool flip_across_pole_hydro[] = {false, false, true, true, false};
@@ -167,7 +167,7 @@ public:
   bool ReceiveEMFCorrection(void);
 
   // particle boundaries
-  void DetachParticle(std::vector<Particle> const& pt, std::vector<int> const& bufid);
+  void DetachParticle(std::vector<Particle> const& pt, std::vector<int> const& bufid, int pid);
   void SendParticleBuffers();
   bool ReceiveParticleBuffers(std::vector<Particle>& pt, std::vector<int>& bufid, int pid);
 
@@ -191,10 +191,9 @@ private:
   Real *emfcor_send_[48], *emfcor_recv_[48];
   Real **emf_north_send_, **emf_north_recv_;
   Real **emf_south_send_, **emf_south_recv_;
-  std::vector<Particle> particle_send_[56];
-  std::vector<size_t>   particle_num_send_[56];
-  std::vector<Particle> particle_recv_[56];
-  std::vector<size_t>   particle_num_recv_[56];
+  // resizeable send/recv buffer
+  std::vector<Particle> particle_send_[56], particle_recv_[56];
+  int *particle_num_send_[56], *particle_num_recv_[56];
   AthenaArray<Real> sarea_[2];
   AthenaArray<Real> exc_;
   int num_north_polar_blocks_, num_south_polar_blocks_;
@@ -207,6 +206,7 @@ private:
   MPI_Request *req_emf_north_send_, *req_emf_north_recv_;
   MPI_Request *req_emf_south_send_, *req_emf_south_recv_;
   MPI_Request req_particle_send_[56], req_particle_recv_[56];
+  MPI_Request req_particle_num_send_[56], req_particle_num_recv_[56];
 #endif
 
   BValFunc_t BoundaryFunction_[6];

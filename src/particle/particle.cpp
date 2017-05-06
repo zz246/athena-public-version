@@ -10,6 +10,14 @@
 #include "../mesh/mesh.hpp"
 #include "../coordinates/coordinates.hpp"
 
+// MPI header
+#ifdef MPI_PARALLEL
+#include <mpi.h>
+MPI_Datatype MPI_PARTICLE;
+#endif
+
+int ParticleGroup::ntotal = 0;
+
 // constructor, initializes data structure and parameters
 ParticleGroup::ParticleGroup(MeshBlock *pmb, std::string _name):
   pmy_block(pmb), name(_name)
@@ -35,6 +43,30 @@ ParticleGroup::ParticleGroup(MeshBlock *pmb, std::string _name):
   lengths_[0] = ncells3;
   lengths_[1] = ncells2;
   lengths_[2] = ncells1;
+
+  ntotal++;
+
+#ifdef MPI_PARALLEL
+  int counts[2] = {7 + NREAL_PARTICLE_DATA, NINT_PARTICLE_DATA};
+  MPI_Datatype types[2] = {MPI_ATHENA_REAL, MPI_INT};
+  MPI_Aint disps[2];
+
+  Particle p;
+
+  MPI_Address(&p.time, disps);
+  #if NINT_PARTICLE_DATA > 0
+    MPI_Address(&p.idata, disps + 1);
+  #endif
+
+  disps[1] -= disps[0];
+  disps[0] = 0;
+
+  if (NINT_PARTICLE_DATA > 0)
+    MPI_Type_struct(2, counts, disps, types, &MPI_PARTICLE);
+  else
+    MPI_Type_contiguous(counts[0], types[0], &MPI_PARTICLE);
+  MPI_Type_commit(&MPI_PARTICLE);
+#endif
 }
 
 // destructor
@@ -43,6 +75,11 @@ ParticleGroup::~ParticleGroup()
   delete[] coordinates_;
   if (prev != NULL) prev->next = next;
   if (next != NULL) next->prev = prev;
+  ntotal--;
+
+#ifdef MPI_PARALLEL
+  MPI_Type_free(&MPI_PARTICLE);
+#endif
 }
 
 // functions

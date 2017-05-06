@@ -36,16 +36,15 @@
 #endif
 
 void BoundaryValues::DetachParticle(
-  std::vector<Particle> const& pt, std::vector<int> const& bufid)
+  std::vector<Particle> const& pt, std::vector<int> const& bufid, int pid)
 {
   for (size_t i = 0; i < bufid.size(); ++i)
-    if (bufid[i] >= 0) {
+    if (bufid[i] >= 0) { // if particle is still alive
       size_t j = pt.size() - i - 1;
       particle_send_[bufid[i]].push_back(pt[j]);
     }
-
   for (int i = 0; i < pmy_block_->pmy_mesh->maxneighbor_; ++i)
-    particle_num_send_[i].push_back(particle_send_[i].size());
+    particle_num_send_[i][pid] = particle_send_[i].size();
 }
 
 void BoundaryValues::SendParticleBuffers()
@@ -58,12 +57,18 @@ void BoundaryValues::SendParticleBuffers()
     if (nb.rank == Globals::my_rank) {  // on the same process
       MeshBlock *pbl = pmb->pmy_mesh->FindMeshBlock(nb.gid);
       pbl->pbval->particle_recv_[nb.targetid] = particle_send_[nb.bufid];
-      pbl->pbval->particle_num_recv_[nb.targetid] = particle_num_send_[nb.bufid];
+      for (int i = 0; i < ParticleGroup::ntotal; ++i)
+        pbl->pbval->particle_num_recv_[nb.targetid][i] = particle_num_send_[nb.bufid][i];
       pbl->pbval->particle_flag_[nb.targetid] = BNDRY_ARRIVED;
     }
 #ifdef MPI_PARALLEL
-    else // MPI
-      MPI_ISend();
+    else { // MPI
+      MPI_Start(&req_particle_num_send_[nb.bufid]);
+      int tag = CreateBvalsMPITag(nb.lid, TAG_PARTICLE_NUM, nb.targetid);
+      int ssize = particle_send_[nb.bufid].size();
+      MPI_Isend(particle_send_[nb.bufid].data(), ssize, MPI_PARTICLE,
+                nb.rank, tag, MPI_COMM_WORLD, &req_particle_send_[nb.bufid]);
+    }
 #endif
   }
 }
@@ -73,6 +78,7 @@ bool BoundaryValues::ReceiveParticleBuffers(
 {
   MeshBlock *pmb = pmy_block_;
   bool flag = true;
+  int test, rsize, tag;
 
   // clear 
   pt.resize(pt.size() - bufid.size());
@@ -82,6 +88,28 @@ bool BoundaryValues::ReceiveParticleBuffers(
     NeighborBlock &nb = pmb->neighbor[n];
 
     if (particle_flag_[nb.bufid] == BNDRY_COMPLETED) continue;
+    if (particle_flag_[nb.bufid] == BNDRY_INIT) {
+      if (nb.rank == Globals::my_rank) { // on the same process
+        flag = false;
+        continue;
+      }
+#ifdef MPI_PARALLEL
+      else { // MPI boundary
+        MPI_Test(&req_particle_num_recv_[nb.bufid], &test, MPI_STATUS_IGNORE);
+        if (test == false) {
+          flag = false;
+          continue;
+        } else {
+          rsize = particle_num_recv_[nb.bufid][ParticleGroup::ntotal - 1];
+          particle_recv_[nb.bufid].resize(rsize);
+          tag = CreateBvalsMPITag(nb.lid, TAG_PARTICLE, nb.bufid);
+          MPI_Irecv(particle_recv_[nb.bufid].data(), rsize, MPI_PARTICLE,
+                    nb.rank, tag, MPI_COMM_WORLD, &req_particle_recv_[nb.bufid]);
+          particle_flag_[nb.bufid] = BNDRY_WAITING;
+        }
+      }
+#endif
+    }
     if (particle_flag_[nb.bufid] == BNDRY_WAITING) {
       if (nb.rank == Globals::my_rank) { // on the same process
         flag = false;
@@ -89,9 +117,7 @@ bool BoundaryValues::ReceiveParticleBuffers(
       }
 #ifdef MPI_PARALLEL
       else { // MPI boundary
-        int test;
-        MPI_Iprobe();
-        MPI_IReceive();
+        MPI_Test(&req_particle_recv_[nb.bufid], &test, MPI_STATUS_IGNORE);
         if (test == false) {
           flag = false;
           continue;
@@ -100,7 +126,6 @@ bool BoundaryValues::ReceiveParticleBuffers(
       }
 #endif
     }
-    
     // attach particle to the particle chain
     std::vector<Particle>::iterator begin = particle_recv_[nb.bufid].begin();
     std::vector<Particle>::iterator it = pid == 0 ? begin : begin + particle_num_recv_[nb.bufid][pid - 1];
@@ -126,7 +151,7 @@ bool BoundaryValues::ReceiveParticleBuffers(
       pt.push_back(*it);
     }
 
-    if (pid == particle_num_recv_[nb.bufid].size() - 1)
+    if (pid == ParticleGroup::ntotal - 1)
       particle_flag_[nb.bufid] = BNDRY_COMPLETED; // completed
   }
 
