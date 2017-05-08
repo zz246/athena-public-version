@@ -113,9 +113,9 @@ public:
   void Initialize(void);
   void CheckBoundary(void);
   void StartReceivingForInit(bool cons_and_field);
-  void StartReceivingAll(void);
+  void StartReceivingAll(int step, int nsub_steps);
   void ClearBoundaryForInit(bool cons_and_field);
-  void ClearBoundaryAll(void);
+  void ClearBoundaryAll(int step, int nsub_steps);
   void ApplyPhysicalBoundaries(AthenaArray<Real> &pdst, AthenaArray<Real> &cdst,
        FaceField &bfdst, AthenaArray<Real> &bcdst, const Real time, const Real dt);
   void ProlongateBoundaries(AthenaArray<Real> &pdst, AthenaArray<Real> &cdst, 
@@ -167,9 +167,10 @@ public:
   bool ReceiveEMFCorrection(void);
 
   // particle boundaries
-  void DetachParticle(std::vector<Particle> const& pt, std::vector<int> const& bufid, int pid);
+  void DetachParticles(std::vector<Particle> &pt, std::vector<int> &bufid, int pid);
   void SendParticleBuffers();
-  bool ReceiveParticleBuffers(std::vector<Particle>& pt, std::vector<int>& bufid, int pid);
+  void ReceiveParticleBuffers();
+  bool AttachParticles(std::vector<Particle> &pt, int pid);
 
 private:
   MeshBlock *pmy_block_;  // ptr to MeshBlock containing this BVals

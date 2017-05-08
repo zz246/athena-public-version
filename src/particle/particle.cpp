@@ -44,29 +44,31 @@ ParticleGroup::ParticleGroup(MeshBlock *pmb, std::string _name):
   lengths_[1] = ncells2;
   lengths_[2] = ncells1;
 
-  ntotal++;
-
 #ifdef MPI_PARALLEL
-  int counts[2] = {7 + NREAL_PARTICLE_DATA, NINT_PARTICLE_DATA};
-  MPI_Datatype types[2] = {MPI_ATHENA_REAL, MPI_INT};
-  MPI_Aint disps[2];
+  if (ntotal == 0) {
+    int counts[2] = {7 + NREAL_PARTICLE_DATA, NINT_PARTICLE_DATA};
+    MPI_Datatype types[2] = {MPI_ATHENA_REAL, MPI_INT};
+    MPI_Aint disps[2];
 
-  Particle p;
+    Particle p;
 
-  MPI_Address(&p.time, disps);
-  #if NINT_PARTICLE_DATA > 0
-    MPI_Address(&p.idata, disps + 1);
-  #endif
+    MPI_Address(&p.time, disps);
+    #if NINT_PARTICLE_DATA > 0
+      MPI_Address(&p.idata, disps + 1);
+    #endif
 
-  disps[1] -= disps[0];
-  disps[0] = 0;
+    disps[1] -= disps[0];
+    disps[0] = 0;
 
-  if (NINT_PARTICLE_DATA > 0)
-    MPI_Type_struct(2, counts, disps, types, &MPI_PARTICLE);
-  else
-    MPI_Type_contiguous(counts[0], types[0], &MPI_PARTICLE);
-  MPI_Type_commit(&MPI_PARTICLE);
+    if (NINT_PARTICLE_DATA > 0)
+      MPI_Type_struct(2, counts, disps, types, &MPI_PARTICLE);
+    else
+      MPI_Type_contiguous(counts[0], types[0], &MPI_PARTICLE);
+    MPI_Type_commit(&MPI_PARTICLE);
+  }
 #endif
+
+  ntotal++;
 }
 
 // destructor
@@ -78,7 +80,8 @@ ParticleGroup::~ParticleGroup()
   ntotal--;
 
 #ifdef MPI_PARALLEL
-  MPI_Type_free(&MPI_PARTICLE);
+  if (ntotal == 0)
+    MPI_Type_free(&MPI_PARTICLE);
 #endif
 }
 

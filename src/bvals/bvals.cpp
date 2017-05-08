@@ -245,6 +245,8 @@ BoundaryValues::BoundaryValues(MeshBlock *pmb, ParameterInput *pin)
     req_hydro_recv_[i]=MPI_REQUEST_NULL;
     req_particle_send_[i]=MPI_REQUEST_NULL;
     req_particle_recv_[i]=MPI_REQUEST_NULL;
+    req_particle_num_send_[i]=MPI_REQUEST_NULL;
+    req_particle_num_recv_[i]=MPI_REQUEST_NULL;
 #endif
   }
   for(int i=0;i<48;i++){
@@ -675,14 +677,12 @@ void BoundaryValues::Initialize(void)
                     nb.rank,tag,MPI_COMM_WORLD,&req_hydro_recv_[nb.bufid]);
 
       // particle
-      if (ParticleGroup::ntotal > 0) {
-        tag = CreateBvalsMPITag(nb.lid, TAG_PARTICLE_NUM, nb.targetid);
-        MPI_Send_init(particle_num_send_[nb.bufid], ParticleGroup::ntotal, MPI_INT,
-                      nb.rank, tag, MPI_COMM_WORLD, &req_particle_num_send_[nb.bufid]);
-        tag = CreateBvalsMPITag(pmb->lid, TAG_PARTICLE_NUM, nb.bufid);
-        MPI_Recv_init(particle_num_recv_[nb.bufid], ParticleGroup::ntotal, MPI_INT,
-                      nb.rank, tag, MPI_COMM_WORLD, &req_particle_num_recv_[nb.bufid]);
-      }
+      tag = CreateBvalsMPITag(nb.lid, TAG_PARTICLE_NUM, nb.targetid);
+      MPI_Send_init(particle_num_send_[nb.bufid], ParticleGroup::ntotal, MPI_INT,
+                    nb.rank, tag, MPI_COMM_WORLD, &req_particle_num_send_[nb.bufid]);
+      tag = CreateBvalsMPITag(pmb->lid, TAG_PARTICLE_NUM, nb.bufid);
+      MPI_Recv_init(particle_num_recv_[nb.bufid], ParticleGroup::ntotal, MPI_INT,
+                    nb.rank, tag, MPI_COMM_WORLD, &req_particle_num_recv_[nb.bufid]);
 
       // flux correction
       if(pmb->pmy_mesh->multilevel==true && nb.type==NEIGHBOR_FACE) {
@@ -923,7 +923,7 @@ void BoundaryValues::StartReceivingForInit(bool cons_and_field)
 //! \fn void BoundaryValues::StartReceivingAll(void)
 //  \brief initiate MPI_Irecv for all the sweeps
 
-void BoundaryValues::StartReceivingAll(void)
+void BoundaryValues::StartReceivingAll(int step, int nsub_steps)
 {
   firsttime_=true;
 #ifdef MPI_PARALLEL
@@ -943,7 +943,7 @@ void BoundaryValues::StartReceivingAll(void)
            MPI_Start(&req_emfcor_recv_[nb.bufid]);
         }
       }
-      if (pmb->ppg != NULL) 
+      if (step == nsub_steps)
         MPI_Start(&req_particle_num_recv_[nb.bufid]);
     }
   }
@@ -1004,7 +1004,7 @@ void BoundaryValues::ClearBoundaryForInit(bool cons_and_field)
 //! \fn void BoundaryValues::ClearBoundaryAll(void)
 //  \brief clean up the boundary flags after each loop
 
-void BoundaryValues::ClearBoundaryAll(void)
+void BoundaryValues::ClearBoundaryAll(int step, int nsub_steps)
 {
   MeshBlock *pmb=pmy_block_;
 
@@ -1012,9 +1012,11 @@ void BoundaryValues::ClearBoundaryAll(void)
   for(int n=0;n<pmb->nneighbor;n++) {
     NeighborBlock& nb = pmb->neighbor[n];
     hydro_flag_[nb.bufid] = BNDRY_WAITING;
-    particle_flag_[nb.bufid] = BNDRY_INIT;
-    particle_send_[nb.bufid].clear();
-    particle_recv_[nb.bufid].clear();
+    if (step == nsub_steps) {
+      particle_flag_[nb.bufid] = BNDRY_INIT;
+      particle_send_[nb.bufid].clear();
+      particle_recv_[nb.bufid].clear();
+    }
     if(nb.type==NEIGHBOR_FACE)
       flcor_flag_[nb.fid][nb.fi2][nb.fi1] = BNDRY_WAITING;
     if (MAGNETIC_FIELDS_ENABLED) {
@@ -1025,7 +1027,10 @@ void BoundaryValues::ClearBoundaryAll(void)
 #ifdef MPI_PARALLEL
     if(nb.rank!=Globals::my_rank) {
       MPI_Wait(&req_hydro_send_[nb.bufid],MPI_STATUS_IGNORE); // Wait for Isend
-      MPI_Wait(&req_particle_num_send_[nb.bufid],MPI_STATUS_IGNORE); // Wait for Isend
+      if (step == nsub_steps) {
+        MPI_Wait(&req_particle_num_send_[nb.bufid],MPI_STATUS_IGNORE); // Wait for Isend
+        MPI_Wait(&req_particle_send_[nb.bufid],MPI_STATUS_IGNORE); // Wait for Isend
+      }
       if(nb.type==NEIGHBOR_FACE && nb.level<pmb->loc.level)
         MPI_Wait(&req_flcor_send_[nb.fid],MPI_STATUS_IGNORE); // Wait for Isend
       if (MAGNETIC_FIELDS_ENABLED) {

@@ -24,6 +24,7 @@
 #include "../eos/eos.hpp"
 #include "../hydro/srcterms/hydro_srcterms.hpp"
 #include "../particle/particle.hpp"
+#include "../globals.hpp"
 
 //----------------------------------------------------------------------------------------
 //  TimeIntegratorTaskList constructor
@@ -287,13 +288,13 @@ void TimeIntegratorTaskList::AddTimeIntegratorTask(uint64_t id, uint64_t dep)
 
 enum TaskStatus TimeIntegratorTaskList::StartAllReceive(MeshBlock *pmb, int step)
 {
-  pmb->pbval->StartReceivingAll();
+  pmb->pbval->StartReceivingAll(step, nsub_steps);
   return TASK_SUCCESS;
 }
 
 enum TaskStatus TimeIntegratorTaskList::ClearAllReceive(MeshBlock *pmb, int step)
 {
-  pmb->pbval->ClearBoundaryAll();
+  pmb->pbval->ClearBoundaryAll(step, nsub_steps);
   return TASK_SUCCESS;
 }
 
@@ -628,7 +629,7 @@ enum TaskStatus TimeIntegratorTaskList::ParticleSend(MeshBlock *pmb, int step)
   int pid = 0;
 
   while (ppg != NULL) {
-    pmb->pbval->DetachParticle(ppg->q, ppg->bufid, pid);
+    pmb->pbval->DetachParticles(ppg->q, ppg->bufid, pid);
     ppg = ppg->next;
     pid++;
   }
@@ -644,11 +645,14 @@ enum TaskStatus TimeIntegratorTaskList::ParticleReceive(MeshBlock *pmb, int step
   if (step != nsub_steps) return TASK_SUCCESS;  // only do on last sub-step
 
   ParticleGroup *ppg = pmb->ppg;
+
+  if (pmb->ppg != NULL)
+    pmb->pbval->ReceiveParticleBuffers();
+
   int pid = 0;
   bool ret = true;
-
   while (ppg != NULL) {
-    ret = ret && pmb->pbval->ReceiveParticleBuffers(ppg->q, ppg->bufid, pid);
+    ret = pmb->pbval->AttachParticles(ppg->q, pid) && ret;
     ppg = ppg->next;
     pid++;
   }
