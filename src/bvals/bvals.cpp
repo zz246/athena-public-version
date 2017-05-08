@@ -943,7 +943,7 @@ void BoundaryValues::StartReceivingAll(int step, int nsub_steps)
            MPI_Start(&req_emfcor_recv_[nb.bufid]);
         }
       }
-      if (step == nsub_steps)
+      if (pmb->ppg != NULL && step == nsub_steps)
         MPI_Start(&req_particle_num_recv_[nb.bufid]);
     }
   }
@@ -1012,7 +1012,7 @@ void BoundaryValues::ClearBoundaryAll(int step, int nsub_steps)
   for(int n=0;n<pmb->nneighbor;n++) {
     NeighborBlock& nb = pmb->neighbor[n];
     hydro_flag_[nb.bufid] = BNDRY_WAITING;
-    if (step == nsub_steps) {
+    if (pmb->ppg != NULL && step == nsub_steps) {
       particle_flag_[nb.bufid] = BNDRY_INIT;
       particle_send_[nb.bufid].clear();
       particle_recv_[nb.bufid].clear();
@@ -1027,7 +1027,7 @@ void BoundaryValues::ClearBoundaryAll(int step, int nsub_steps)
 #ifdef MPI_PARALLEL
     if(nb.rank!=Globals::my_rank) {
       MPI_Wait(&req_hydro_send_[nb.bufid],MPI_STATUS_IGNORE); // Wait for Isend
-      if (step == nsub_steps) {
+      if (pmb->ppg != NULL && step == nsub_steps) {
         MPI_Wait(&req_particle_num_send_[nb.bufid],MPI_STATUS_IGNORE); // Wait for Isend
         MPI_Wait(&req_particle_send_[nb.bufid],MPI_STATUS_IGNORE); // Wait for Isend
       }

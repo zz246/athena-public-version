@@ -123,25 +123,26 @@ bool BoundaryValues::AttachParticles(std::vector<Particle>& pt, int pid)
       std::vector<Particle>::iterator begin = particle_recv_[nb.bufid].begin();
       std::vector<Particle>::iterator it = pid == 0 ? begin : begin + particle_num_recv_[nb.bufid][pid - 1];
       for (; it != begin + particle_num_recv_[nb.bufid][pid]; ++it) {
-        if (pmb->block_bcs[(nb.ox1+1)>>1] == PERIODIC_BNDRY) // 0:INNER_X1, 1:OUTER_X1
+        if (pmb->block_bcs[nb.ox1+1>>1] == PERIODIC_BNDRY) // 0:INNER_X1, 1:OUTER_X1
           it->x1 += nb.ox1*(pmb->pmy_mesh->mesh_size.x1max - pmb->pmy_mesh->mesh_size.x1min);
 
-        if (pmb->block_bcs[2+(nb.ox2+1)>>1] == PERIODIC_BNDRY) // 2:INNER_X2, 3:OUTER_X2
+        if (pmb->block_bcs[2+(nb.ox2+1>>1)] == PERIODIC_BNDRY) // 2:INNER_X2, 3:OUTER_X2
           it->x2 += nb.ox2*(pmb->pmy_mesh->mesh_size.x2max - pmb->pmy_mesh->mesh_size.x2min);
 
-        if (pmb->block_bcs[4+(nb.ox3+1)>>1] == PERIODIC_BNDRY) // 4:INNER_X3, 5:OUTER_X3
+        if (pmb->block_bcs[4+(nb.ox3+1>>1)] == PERIODIC_BNDRY) // 4:INNER_X3, 5:OUTER_X3
           it->x3 += nb.ox3*(pmb->pmy_mesh->mesh_size.x3max - pmb->pmy_mesh->mesh_size.x3min);
 
-        if (it->x1 < pmb->block_size.x1min || it->x1 > pmb->block_size.x1max
-            || it->x2 < pmb->block_size.x2min || it->x2 > pmb->block_size.x2max
-            || it->x3 < pmb->block_size.x3min | it->x3 > pmb->block_size.x3max) {
+        bool out_of_domain = (it->x1 < pmb->block_size.x1min || it->x1 > pmb->block_size.x1max) ||
+             (pmb->block_size.nx2 > 1 && (it->x2 < pmb->block_size.x2min || it->x2 > pmb->block_size.x2max)) ||
+             (pmb->block_size.nx3 > 1 && (it->x3 < pmb->block_size.x3min || it->x3 > pmb->block_size.x3max));
+        if (out_of_domain) {
           flag = false;
           std::stringstream msg;
           msg << "### FATAL ERROR in AttachParticles: particle #" << pid
               << " moved out of MeshBlock limits" << std::endl;
-          msg << it->x1 << " " << nb.ox1 << " " << pmb->block_size.x1min << " " << pmb->block_size.x1max << std::endl;
-          msg << it->x2 << " " << nb.ox2 << " " << pmb->block_size.x2min << " " << pmb->block_size.x2max << std::endl;
-          msg << it->x3 << " " << nb.ox3 << " " << pmb->block_size.x3min << " " << pmb->block_size.x3max << std::endl;
+          msg << it->x1 << " " << pmb->block_size.x1min << " " << pmb->block_size.x1max << std::endl;
+          msg << it->x2 << " " << pmb->block_size.x2min << " " << pmb->block_size.x2max << std::endl;
+          msg << it->x3 << " " << pmb->block_size.x3min << " " << pmb->block_size.x3max << std::endl;
           throw std::runtime_error(msg.str().c_str());
         }
 

@@ -27,7 +27,7 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
   Real x3max = pmb->block_size.x3max;
 
   size_t i = 0, j = q.size();
-  int ox1, ox2, ox3, fi1, fi2;
+  int ox1 = 0, ox2 = 0, ox3 = 0, fi1 = 0, fi2 = 0;
   Particle tmp;
 
   while (i < j) {
@@ -58,40 +58,42 @@ void ParticleGroup::PropertyUpdate(Real time, Real dt)
       alive = true;
 
     // take care of reflective boundary condition
-    if (q[i].x1 < x1min && pmb->block_bcs[0] == REFLECTING_BNDRY) {
+    if (pmb->block_bcs[0] == REFLECTING_BNDRY && q[i].x1 < x1min) {
       q[i].x1 = 2*x1min - q[i].x1;
       q[i].v1 = - q[i].v1;
     }
-    if (q[i].x1 > x1max && pmb->block_bcs[1] == REFLECTING_BNDRY) {
+    if (pmb->block_bcs[1] == REFLECTING_BNDRY && q[i].x1 > x1max) {
       q[i].x1 = 2*x1max - q[i].x1;
       q[i].v1 = - q[i].v1;
     }
-    if (q[i].x2 < x2min && pmb->block_bcs[2] == REFLECTING_BNDRY) {
-      q[i].x2 = 2*x2min - q[i].x2;
-      q[i].v2 = - q[i].v2;
-    }
-    if (q[i].x2 > x2max && pmb->block_bcs[3] == REFLECTING_BNDRY) {
-      q[i].x2 = 2*x2max - q[i].x2;
-      q[i].v2 = - q[i].v2;
-    }
-    if (q[i].x3 < x3min && pmb->block_bcs[4] == REFLECTING_BNDRY) {
-      q[i].x3 = 2*x3min - q[i].x3;
-      q[i].v3 = - q[i].v3;
-    }
-    if (q[i].x3 > x3max && pmb->block_bcs[5] == REFLECTING_BNDRY) {
-      q[i].x3 = 2*x3max - q[i].x3;
-      q[i].v3 = - q[i].v3;
-    }
-
     ox1 = q[i].x1 < x1min ? -1 : (q[i].x1 > x1max ? 1 : 0);
-    ox2 = q[i].x2 < x2min ? -1 : (q[i].x2 > x2max ? 1 : 0);
-    ox3 = q[i].x3 < x3min ? -1 : (q[i].x3 > x3max ? 1 : 0);
 
-    if (!pmb->pmy_mesh->multilevel) {
-      fi1 = 0;
-      fi2 = 0;
-    } else {
-      // reserved implementation for multilevel
+    if (pmb->block_size.nx2 > 1) {
+      if (pmb->block_bcs[2] == REFLECTING_BNDRY && q[i].x2 < x2min) {
+        q[i].x2 = 2*x2min - q[i].x2;
+        q[i].v2 = - q[i].v2;
+      }
+      if (pmb->block_bcs[3] == REFLECTING_BNDRY && q[i].x2 > x2max) {
+        q[i].x2 = 2*x2max - q[i].x2;
+        q[i].v2 = - q[i].v2;
+      }
+      ox2 = q[i].x2 < x2min ? -1 : (q[i].x2 > x2max ? 1 : 0);
+    }
+
+    if (pmb->block_size.nx3 > 1) {
+      if (pmb->block_bcs[4] == REFLECTING_BNDRY && q[i].x3 < x3min) {
+        q[i].x3 = 2*x3min - q[i].x3;
+        q[i].v3 = - q[i].v3;
+      }
+      if (pmb->block_bcs[5] == REFLECTING_BNDRY && q[i].x3 > x3max) {
+        q[i].x3 = 2*x3max - q[i].x3;
+        q[i].v3 = - q[i].v3;
+      }
+      ox3 = q[i].x3 < x3min ? -1 : (q[i].x3 > x3max ? 1 : 0);
+    }
+
+    if (pmb->pmy_mesh->multilevel) {
+      // reserved implementation for multilevel, fi1, fi2
     }
 
     int id = FindBufferID(ox1, ox2, ox3, fi1, fi2, pmb->pmy_mesh->maxneighbor_);

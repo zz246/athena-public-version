@@ -48,7 +48,6 @@ def CombineNcFiles(case, path = './', out = ''):
     print 'processing block %d ...' % i
     files = path + case + '.block%d.*.*.nc' % i
     target = outfile + '.nc.%04d' % i
-    print target
     subprocess.call('ncrcat -h %s -o %s' % (files, target), shell = True)
     subprocess.call('ncatted -O -a %s,%s,%c,%c,%d %s' 
       % ('NumFilesInSet', 'global', 'c', 'i', nblocks, target),
@@ -63,16 +62,18 @@ def CombineNcFiles(case, path = './', out = ''):
     os.remove(f)
   print 'Output file writted in ', outfile + '.nc'
 
-def ReadParticleAscii(case, name, path = './'):
+def ReadParticleAscii(case, name, path = './', fs = None, fe = None):
   fnames = glob(path + '%s.%s.block*.?????.pat' % (case, name))
   fnames = sorted(fnames, key = lambda x: (GetFrameId(x), GetBlockId(x)))
 
   nblocks = GetNumberBlocks('pat', path)
   nframes = GetNumberFrames('pat', path)
+  if fs == None: fs = 0
+  if fe == None: fe = nframes
 
   data, time = [], []
 
-  for fname in fnames:
+  for fname in fnames[fs*nblocks:fe*nblocks]:
     fid = GetFrameId(fname)
     data.append(genfromtxt(fname))
     with open(fname, 'r') as ff:
@@ -81,7 +82,7 @@ def ReadParticleAscii(case, name, path = './'):
     time.append(float(timestr[5:]))
 
   if nblocks > 1:
-    for i in range(nframes):
+    for i in range(fe - fs):
       data[i*nblocks] = vstack(data[i*nblocks:(i+1)*nblocks])
 
   return data[::nblocks], time[::nblocks]
