@@ -1,7 +1,14 @@
 #! /usr/bin/env python2.7
 from glob import glob
 from numpy import genfromtxt, zeros, vstack 
-import re, subprocess, os, getopt, sys
+from subprocess import check_call
+import re, os, getopt, sys, operator, pickle
+
+def List2str(s, format = None):
+  if format == None:
+    return reduce(operator.add, [' ' + str(x) for x in s[1:]], str(s[0]))
+  else:
+    return reduce(operator.add, [format % x for x in s[1:]], format % s[0])
 
 def GetBlockId(fname):
   for name in fname.split('.'):
@@ -26,11 +33,11 @@ def GetOutputId(fname):
   assert False, 'Output id not found'
 
 def GetNumberBlocks(ext, path = './'):
-  fnames = glob('*.[0-9][0-9][0-9][0-9][0-9].' + ext)
+  fnames = glob(path + '/*.[0-9][0-9][0-9][0-9][0-9].' + ext)
   return len(set(map(GetBlockId, fnames)))
 
 def GetNumberFrames(ext, path = './'):
-  fnames = glob('*.?????.' + ext)
+  fnames = glob(path + '/*.?????.' + ext)
   return len(set(map(GetFrameId, fnames)))
 
 def GetNcVariable(fname, vname, path = './'):
@@ -46,34 +53,39 @@ def CombineNcFiles(case, path = './', out = ''):
   nblocks = GetNumberBlocks('nc', path)
   for i in range(nblocks):
     print 'processing block %d ...' % i
-    files = path + case + '.block%d.*.*.nc' % i
+    files = path + '/' + '%s.block%d.*.*.nc' % (case, i)
     target = outfile + '.nc.%04d' % i
-    subprocess.call('ncrcat -h %s -o %s' % (files, target), shell = True)
-    subprocess.call('ncatted -O -a %s,%s,%c,%c,%d %s' 
-      % ('NumFilesInSet', 'global', 'c', 'i', nblocks, target),
-      shell = True)
+    check_call('ncrcat -h %s -o %s' % (files, target), shell = True)
+    check_call('ncatted -O -a %s,%s,%c,%c,%d %s' % ('NumFilesInSet', 'global', 'c', 'i',
+              nblocks, target), shell = True)
 
   #if not os.path.exists('mppnccombine'):
   #  subprocess.call('gcc -O -o mppnccombine mppnccombine.c -lnetcdf', shell = True)
 
-  subprocess.call('./mppnccombine %s.nc' % outfile, shell = True)
+  check_call('./mppnccombine %s.nc' % outfile, shell = True)
 
   for f in glob(outfile + '.nc.????'):
     os.remove(f)
+  #for f in glob(path + '/' + case + '.block*.nc'):
+  #  os.remove(f)
+
   print 'Output file writted in ', outfile + '.nc'
 
 def ReadParticleAscii(case, name, path = './', fs = None, fe = None):
-  fnames = glob(path + '%s.%s.block*.?????.pat' % (case, name))
+  fnames = glob(path + '/' + '%s.%s.block*.?????.pat' % (case, name))
   fnames = sorted(fnames, key = lambda x: (GetFrameId(x), GetBlockId(x)))
 
   nblocks = GetNumberBlocks('pat', path)
   nframes = GetNumberFrames('pat', path)
+  print nblocks, nframes
   if fs == None: fs = 0
   if fe == None: fe = nframes
 
   data, time = [], []
 
-  for fname in fnames[fs*nblocks:fe*nblocks]:
+  for i, fname in enumerate(fnames[fs*nblocks:fe*nblocks]):
+    if i%nblocks == 0:
+      print 'processing frame %d ...' % (fs+i/nblocks,)
     fid = GetFrameId(fname)
     data.append(genfromtxt(fname))
     with open(fname, 'r') as ff:
@@ -94,7 +106,15 @@ def CombinePatFiles(case, name, path = './', out = ''):
   else:
     outfile = case + '-' + out
   data, time = ReadParticleAscii(case, name, path)
+  with open(outfile + '.pat.pk', 'wb') as file:
+    pickle.dump(data, file)
+    pickle.dump(time, file)
 
+def ReadCombinedPatFiles(patfile):
+  with open(patfile, 'rb') as file:
+    data = pickle.load(file)
+    time = pickle.load(file)
+  return data, time
 
 if __name__ == '__main__':
   opts, args = getopt.getopt(sys.argv[1:], 'c:d:no:p:', ['case', 'dir', 'netcdf',
@@ -113,6 +133,7 @@ if __name__ == '__main__':
       case_name = arg
     elif opt in ['-d', '--dir']:
       path_name = arg
+      out_name = arg
     elif opt in ['-n', '--netcdf']:
       task_nc_combine = True
     elif opt in ['-o', '--output']:

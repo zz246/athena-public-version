@@ -85,10 +85,10 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
   ppg = new ParticleGroup(this, "tracer");
   long int iseed = -1 - Globals::my_rank;
 
-  Real x1min = block_size.x1min;
-  Real x1max = block_size.x1max;
-  Real x2min = block_size.x2min;
-  Real x2max = block_size.x2max;
+  Real x1min = block_size.x1min*0.99;
+  Real x1max = block_size.x1max*0.99;
+  Real x2min = block_size.x2min*0.99;
+  Real x2max = block_size.x2max*0.99;
 
   /*for (int n = 0; n < ntracers; ++n) {
     Particle tracer;
