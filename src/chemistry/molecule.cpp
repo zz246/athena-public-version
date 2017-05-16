@@ -4,18 +4,18 @@
 #include <stdexcept>
 
 // Athena++ headers
-#include "io_funcs.h"
-#include "Molecule.h"
-#include "Constants.h"
-#include "utils.h"
-#include "Parameter.h"
+#include "../parameter_input.hpp"
+#include "../misc.hpp"
+#include "../math_funcs.hpp"
+#include "../globals.hpp"
+#include "molecule.hpp"
 
 int Molecule::ntotal = 0;
 
 std::ostream& operator<<(std::ostream &os, Molecule const& mol)
 {
-  os << "name: " << mol.m_name << std::endl
-     << "molecular weight: " << mol.m_mu << " kg/mol" << std::endl
+  os << "name: " << mol.name << std::endl
+     << "molecular weight: " << mol.mu << " kg/mol" << std::endl
      << "heat capacity (cp): " << mol.m_cp << " J/(mol K)" << std::endl
      << "vaporization heat at triple point: " << mol.m_latent << " kJ/mol" << std::endl
      << "vapor pressure coefficients: " << mol.m_beta << " " << mol.m_gamma << std::endl
@@ -24,22 +24,84 @@ std::ostream& operator<<(std::ostream &os, Molecule const& mol)
   return os;
 }
 
-
-Molecule::Molecule(std::string name = "") :
+Molecule::Molecule(std::string name):
   name(name), mu(0), tr(0), pr(0), tc(0), pc(0), phase(GAS),
   m_cp(0), m_latent(0), m_entropy(0), m_enthalpy(0), m_gibbs(0),
   m_cliq(0), m_enliq(0), m_csld(0), m_ensld(0),
-  m_beta(0), m_gamma(0), m_nshomate(0),
+  m_beta(0), m_gamma(0), m_nshomate(0)
 {
   prev = NULL;
   next = NULL;
-  std::fill(m_shomate.begin(), m_shomate.end(), 0.);
-  std::fill(m_shomate_sp.begin(), m_shomate_sp.end(), 0.);
+
+  for (int i = 0; i < MAXSHOMATE; ++i)
+    for (int j = 0; j < NSHOMATE; ++j)
+      m_shomate[i][j] = 0.;
+  for (int i = 0; i < MAXSHOMATE; ++i)
+    m_shomate_sp[i] = 0.;
 
   ntotal++;
 }
 
-Molecule* AddMolecule(std::string name)
+Molecule::Molecule(ParameterInput *pin)
+{
+  std::stringstream msg;
+  ntotal++;
+
+  std::string gas = pin->GetString("chemistry", "gas");
+  std::string cloud = pin->GetOrAddString("chemistry", "cloud", "");
+  std::string folder = pin->GetOrAddString("chemistry", "folder", "");
+
+  std::vector<std::string> agas, acloud;
+  SplitString(gas, agas);
+  SplitString(cloud, acloud);
+  int ngas = gas.size();
+  int ncloud = cloud.size();
+
+  if (ngas == 0) {
+    msg << "### FATAL ERROR in Molecule. Number of gas must be at least 1"
+    << std::endl;
+    throw std::runtime_error(msg.str().c_str());
+  }
+
+  std::string name = agas[0];
+  Molecule *molecule;
+
+  LoadChemistryFile(folder + name + ".chem");
+  phase = GAS;
+
+  for (int i = 1; i < ngas; ++i) {
+    name = agas[i];
+    molecule = AddMolecule(name);
+    molecule->LoadChemistryFile(folder + name + ".chem");
+    molecule->phase = GAS;
+  }
+
+  for (int i = 0; i < ncloud; ++i) {
+    name = acloud[i];
+    molecule = AddMolecule(name);
+    molecule->LoadChemistryFile(folder + name.substr(0, name.size() - 3) + ".chem");
+    std::string p = name.substr(name.size() - 3, 3);
+    if (p == "(l)")
+      molecule->SetPhase(LIQUID);
+    else if (p == "(s)")
+      molecule->SetPhase(SOLID);
+    else {
+      msg << "### FATAL ERROR in Molecule " << name << ". Phase not found"
+      << std::endl;
+      throw std::runtime_error(msg.str().c_str());
+    }
+  }
+}
+
+// destructor
+Molecule::~Molecule()
+{
+  if (prev != NULL) prev->next = next;
+  if (next != NULL) next->prev = prev;
+  ntotal--;
+}
+
+Molecule* Molecule::AddMolecule(std::string name)
 {
   std::stringstream msg;
   Molecule *p = this;
@@ -57,80 +119,31 @@ Molecule* AddMolecule(std::string name)
   return p->next;
 }
 
-void Molecule::Initialize(ParameterInput *pin)
-{
-  std::string gas = pin->GetString("chemistry", "gas");
-  std::string cloud = pin->GetOrAddString("chemistry", "cloud", "");
-  std::string folder = pin->GetString("chemistry", "folder");
-
-  int ngas    = param.get_size("gas"),
-      ncloud  = param.get_size("cloud");
-
-    std::vector<std::string>
-            agas(ngas),
-            acloud(ncloud);
-
-    std::string
-            folder,
-            name;
-
-    param.get_entry("chem_folder", &folder);
-    param.get_entry("gas", &agas.front(), &agas.back());
-    param.get_entry("cloud", &acloud.front(), &acloud.back());
-
-    for (int i = 0; i < ngas; ++i) {
-        name = agas[i];
-        auto molecule = std::make_shared<Molecule>(name);
-        mlist.push_back(molecule);
-        mlist.back()->load_chem_file(folder + name + ".chem");
-        mlist.back()->set_to_simple();
-    }
-
-    for (int i = 0; i < ncloud; i++) {
-        name = acloud[i];
-        auto molecule = std::make_shared<Molecule>(name);
-        mlist.push_back(molecule);
-        std::string phase = name.substr(name.size() - 3, 3);
-        auto gas = cfind_molecule(mlist, name.substr(0, name.size() - 3));
-        // If cannot find an associated gas molecule, load a chemical file
-        // without a phase name 
-        if (gas == mlist.end()) {
-            mlist.back()->load_chem_file(folder + name.substr(0, name.size() - 3) + ".chem");
-            gas--;
-        }
-        if (phase == "(l)")
-            mlist.back()->set_to_liquid(**gas);
-        else
-            mlist.back()->set_to_solid(**gas);
-    }
-}
-
 void Molecule::LoadChemistryFile(std::string chemfile)
 {
-  std::stringstream inp(decomment(chemfile));
+  std::stringstream inp(DecommentFile(chemfile));
   Real junk;
 
-  inp >> m_name >> m_mu
+  inp >> name >> mu
       >> m_entropy >> m_enthalpy >> m_gibbs >> m_cp
-      >> m_tr >> m_pr
-      >> m_tc >> m_pc; 
+      >> tr >> pr >> tc >> pc; 
   inp >> m_nshomate;
   for (int i = 0; i < m_nshomate; i++) {
-    inp >> m_shomate_sp.at(i) >> junk;
+    inp >> m_shomate_sp[i] >> junk;
     for (int j = 0; j < NSHOMATE; j++)
-      inp >> m_shomate.at(i * NSHOMATE + j);
+      inp >> m_shomate[i][j];
   }
-  m_shomate_sp.at(m_nshomate) = junk;
+  m_shomate_sp[m_nshomate] = junk;
 
   inp >> m_cliq >> m_enliq
       >> m_csld >> m_ensld;
 
-  m_mu *= 1.E-3;  // g/mol -> kg/mol
+  mu *= 1.E-3;  // g/mol -> kg/mol
 }
 
 Real Molecule::Cp(Real T) const 
 {
-  int i = _locate(m_shomate_sp.data(), T, m_nshomate + 1);
+  int i = _locate(m_shomate_sp, T, m_nshomate + 1);
   if (i == m_nshomate) i = m_nshomate - 1; if (i < 0) i = 0;
 
   Real result;
@@ -142,7 +155,7 @@ Real Molecule::Cp(Real T) const
 
 Real Molecule::Enthalpy(Real T) const
 {
-  int i = _locate(m_shomate_sp.data(), T, m_nshomate + 1);
+  int i = _locate(m_shomate_sp, T, m_nshomate + 1);
   if (i == m_nshomate) i = m_nshomate - 1; if (i < 0) i = 0;
 
   T /= 1.E3;
@@ -153,7 +166,7 @@ Real Molecule::Enthalpy(Real T) const
 
 Real Molecule::Entropy(Real T) const
 {
-  int i = _locate(m_shomate_sp.data(), T, m_nshomate + 1);
+  int i = _locate(m_shomate_sp, T, m_nshomate + 1);
   if (i == m_nshomate) i = m_nshomate - 1; if (i < 0) i = 0;
 
   T /= 1.E3;
@@ -162,60 +175,57 @@ Real Molecule::Entropy(Real T) const
     - m_shomate[i][4]/(2.*T*T) + m_shomate[i][6];
 }
 
-Real Molecule::Latent(Real T) const {
-  return m_latent + Enthalpy(T) - Enthalpy(m_tr) - m_cp * (T - m_tr) / 1.E3;
+Real Molecule::Latent(Real T) const
+{
+  return m_latent + Enthalpy(T) - Enthalpy(tr) - m_cp * (T - tr) / 1.E3;
 }
 
-Real Molecule::SatVaporPres(Real T) const {
-  return m_pr * exp((1. - m_tr / T) * m_beta - m_gamma * log(T / m_tr));
+Real Molecule::SatVaporPres(Real T) const
+{
+  return pr * exp((1. - tr / T) * m_beta - m_gamma * log(T / tr));
 };
 
-Real Molecule::SatVaporTemp(Real P, Real Tmin, Real Tmax, Real precision) const {
-  Real Tsat, Tmin, Tmax;
-  Tmin = 50.;
-  Tmax = 2000.;
-  int error = _root(Tmin, Tmax, precision, &Tsat, _SolveSatVaporTemp);
+Real Molecule::SatVaporTemp(Real P, Real Tmin, Real Tmax, Real precision) const
+{
+  Real Tsat;
+  SatVaporTempSolver solver;
+  solver.pmol = this;
+  solver.pres = P;
+  int error = _root(Tmin, Tmax, precision, &Tsat, solver);
   std::stringstream msg;
   if (error) {
     msg << "SatVaporTemp failed" << std::endl
         << "Pressure = " << P << " Pa" << std::endl
-        << "Tmin = " << Tmin << std::endl;
-        << "Tmax = " << Tmax << std::endl;
-        << "Saturation vapor pressure at Tmin = " << sat_vapor_p(Tmin) << std::endl;
-        << "Saturation vapor pressure at Tmax = " << sat_vapor_p(Tmax) << std::endl;
+        << "Tmin = " << Tmin << std::endl
+        << "Tmax = " << Tmax << std::endl
+        << "Saturation vapor pressure at Tmin = " << SatVaporPres(Tmin) << std::endl
+        << "Saturation vapor pressure at Tmax = " << SatVaporPres(Tmax) << std::endl
         << *this << std::endl;
     throw std::runtime_error(msg.str().c_str());
   }
   return Tsat;
 }
 
-void Molecule::SetPhase(PhaseID pid) {
+void Molecule::SetPhase(PhaseID pid)
+{
   if (pid == LIQUID) {
-    m_name += "(l)";
+    name += "(l)";
     m_cp = m_cliq;
     m_latent = m_enliq;
-    m_beta = (m_latent * 1.E3 - (cp(m_tr) - m_cp) * m_tr) / (Globals::Rgas * m_tr);
-    m_gamma = (m_cp - cp(m_tr)) / Globals::Rgas;
+    m_beta = (m_latent * 1.E3 - (Cp(tr) - m_cp) * tr) / (Globals::Rgas * tr);
+    m_gamma = (m_cp - Cp(tr)) / Globals::Rgas;
     phase = LIQUID;
   } else if (pid == SOLID) {
-    m_name = m_name + "(s)";
+    name += "(s)";
     m_cp = m_csld;
     m_latent = m_ensld;
-    m_beta = (m_latent * 1.E3 - (cp(m_tr) - m_cp) * m_tr) / (Globals::Rgas * m_tr);
-    m_gamma = (m_cp - cp(m_tr)) / Globals::Rgas;
+    m_beta = (m_latent * 1.E3 - (Cp(tr) - m_cp) * tr) / (Globals::Rgas * tr);
+    m_gamma = (m_cp - Cp(tr)) / Globals::Rgas;
+    phase = SOLID;
   }
 }
 
-/*void Molecule::set_to_simple() {
-    for (int i = 0; i < m_nshomate; i++)
-        m_shomate.at(i * NSHOMATE) = m_cp;
-
-    for (int i = 0; i < m_nshomate; i++)
-        for (int j = 1; j < NSHOMATE; j++)
-            m_shomate.at(i * NSHOMATE + j) = 0.;
-}*/
-
-Molecule* GetMolecule(std::string name)
+Molecule* Molecule::GetMolecule(std::string name)
 {
   std::stringstream msg;
   Molecule *p = this;
@@ -229,7 +239,7 @@ Molecule* GetMolecule(std::string name)
   return p;
 }
 
-Molecule const* GetMolecule(std::string name) const
+Molecule const* Molecule::GetMolecule(std::string name) const
 {
   std::stringstream msg;
   Molecule const *p = this;
@@ -241,10 +251,4 @@ Molecule const* GetMolecule(std::string name) const
     throw std::runtime_error(msg.str().c_str());
   }
   return p;
-}
-
-Real Molecule::_SolveSatVaporTemp(Real T, void *other)
-{
-  Real pres = *static_cast<Real*>(other);
-  return SatVaporPres(T) - pres;
 }

@@ -4,7 +4,7 @@
 #include "../athena_arrays.hpp"
 #include "../mesh/mesh.hpp"
 #include "../hydro/hydro.hpp"
-#include "../athena_math.hpp" // _interpn
+#include "../math_funcs.hpp" // _interpn
 
 void ParticleGroup::PropertyUpdate(Real time, Real dt)
 {

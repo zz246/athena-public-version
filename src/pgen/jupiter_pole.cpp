@@ -11,7 +11,7 @@
 #include "../athena.hpp"
 #include "../globals.hpp"
 #include "../athena_arrays.hpp"
-#include "../athena_math.hpp"     // _root, _sqr
+#include "../math_funcs.hpp"     // _root, _sqr
 #include "../parameter_input.hpp"
 #include "../coordinates/coordinates.hpp"
 #include "../eos/eos.hpp"

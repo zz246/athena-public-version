@@ -19,7 +19,7 @@
 // Athena++ headers
 #include "../athena.hpp"
 #include "../athena_arrays.hpp"
-#include "../athena_math.hpp"   // _sqr
+#include "../math_funcs.hpp"   // _sqr
 #include "../globals.hpp"
 #include "../coordinates/coordinates.hpp"
 #include "../hydro/hydro.hpp"

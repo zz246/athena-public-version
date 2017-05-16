@@ -50,7 +50,6 @@
  * - shomate_sp, temperature separations in shomate expressions
  */
 
-
 #define NSHOMATE 7 // number of Shomate coefficients
 #define MAXSHOMATE 3 // maximum number of shomate expressions
 
@@ -60,8 +59,9 @@ class ParametricInput;
 class Molecule {
   friend std::ostream& operator<<(std::ostream &os, Molecule const& mol);
 public:
-  Molecule(std::string name = "");
-  virtual ~Molecule(); {}
+  Molecule(std::string name);
+  Molecule(ParameterInput *pin);
+  virtual ~Molecule();
 
   // data
   static int ntotal;
@@ -72,7 +72,6 @@ public:
 
   // functions
   Molecule* AddMolecule(std::string name);
-  void Initialize(ParameterInput *pin);
   void LoadChemistryFile(std::string chemfile);
   virtual Real Cp(Real T) const;
   virtual Real Enthalpy(Real T) const;
@@ -95,19 +94,14 @@ protected:
   int  m_nshomate;
   Real m_shomate[MAXSHOMATE][NSHOMATE];
   Real m_shomate_sp[MAXSHOMATE];
-
-  Real _SolveSatVaporTemp(Real T, void *other);
 };
 
-#undef MAXSHOMATE
-#undef NSHOMATE
-
-/*typedef std::vector<std::shared_ptr<Molecule>> MoleculeList;
-
-MoleculeList::const_iterator cfind_molecule(MoleculeList const& mol, std::string name);
-
-class Parameter;
-void initialize(MoleculeList& mlist, Parameter const& param);
-*/
+struct SatVaporTempSolver {
+  Real pres;
+  Molecule const* pmol;
+  Real operator()(Real temp) {
+    return pmol->SatVaporPres(temp) - pres;
+  }
+};
 
 #endif

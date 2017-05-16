@@ -7,7 +7,7 @@
 
 // Athena++ classes headers
 #include "../athena.hpp"
-#include "../athena_arrays.hpp"
+//#include "../athena_arrays.hpp"
 
 // MPI header
 #ifdef MPI_PARALLEL
@@ -15,7 +15,7 @@
 #endif
 
 class MeshBlock;
-class ParticleTableOutput;
+//class ParticleTableOutput;
 
 struct Particle {
   Real time, x1, x2, x3;

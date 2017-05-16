@@ -14,7 +14,7 @@
 #include "coordinates.hpp"
 #include "../athena.hpp"
 #include "../athena_arrays.hpp"
-#include "../athena_math.hpp"   // _sqr, _cub
+#include "../math_funcs.hpp"   // _sqr, _cub
 #include "../parameter_input.hpp"
 #include "../mesh/mesh.hpp"
 #include "../eos/eos.hpp"

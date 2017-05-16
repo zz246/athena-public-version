@@ -18,5 +18,5 @@ namespace Globals
   int nranks;  // total number of MPI ranks, set at start of main()
 
   // mathematical and physical constants
-  double const Rgas = 8.314462; // universal gas constant
+  double Rgas = 8.314462; // universal gas constant
 }

@@ -1,5 +1,5 @@
-#ifndef ATHENA_MATH_HPP
-#define ATHENA_MATH_HPP
+#ifndef MATH_HPP
+#define MATH_HPP
 #include <cmath>      // sqrt, fabs
 #include <iostream>   // std::endl
 #include <sstream>    // std::stringstream
@@ -129,7 +129,7 @@ int _root(
         R x2,
         R xacc,
         R *x_root,
-        T& func
+        T func
         )
 {
   int
