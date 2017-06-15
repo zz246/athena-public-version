@@ -43,6 +43,7 @@
 #include "../mesh/mesh.hpp"
 #include "../utils/utils.hpp"
 
+
 void ProjectPressureInnerX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,
      FaceField &b, Real time, Real dt, int is, int ie, int js, int je, int ks, int ke);
 void ProjectPressureOuterX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,
@@ -67,8 +68,8 @@ void Mesh::InitUserMeshData(ParameterInput *pin)
 {
   if (mesh_size.nx3 == 1) {  // 2D problem
     // Enroll special BCs
-    EnrollUserBoundaryFunction(INNER_X2, ProjectPressureInnerX2);
-    EnrollUserBoundaryFunction(OUTER_X2, ProjectPressureOuterX2);
+    //EnrollUserBoundaryFunction(INNER_X2, ProjectPressureInnerX2);
+    //EnrollUserBoundaryFunction(OUTER_X2, ProjectPressureOuterX2);
   }
   else { // 3D problem
     // Enroll special BCs
@@ -89,6 +90,10 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
   Real gamma = peos->GetGamma();
   gm1 = gamma - 1.0;
   
+  Real temp = 0.0;
+  
+  // Real temperature[ke-ks+1][je-js+1][ie-is+1];
+
   Real kx = 2.0*(PI)/(pmy_mesh->mesh_size.x1max - pmy_mesh->mesh_size.x1min);
   Real ky = 2.0*(PI)/(pmy_mesh->mesh_size.x2max - pmy_mesh->mesh_size.x2min);
   Real kz = 2.0*(PI)/(pmy_mesh->mesh_size.x3max - pmy_mesh->mesh_size.x3min);
@@ -98,61 +103,55 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin)
   int iprob = pin->GetInteger("problem","iprob");
   Real drat = pin->GetOrAddReal("problem","drat",3.0);
 
-
 // 2D PROBLEM ---------------------------------------------------------------
 
   if (block_size.nx3 == 1) {
     grav_acc = phydro->psrc->GetG2();
+
+
     for (int k=ks; k<=ke; k++) {
     for (int j=js; j<=je; j++) {
       for (int i=is; i<=ie; i++) {
-        Real den=1.0;
-        if (pcoord->x2v(j) > 0.0) den *= drat;
-
-        if (iprob == 1) {
-          phydro->u(IM2,k,j,i) = (1.0+cos(kx*pcoord->x1v(i)))*(1.0+cos(ky*pcoord->x2v(j)))/4.0;
-        } else {
-          phydro->u(IM2,k,j,i) = (ran2(&iseed) - 0.5)*(1.0+cos(ky*pcoord->x2v(j)));
-        }
-
-        phydro->u(IDN,k,j,i) = den;
-        phydro->u(IM1,k,j,i) = 0.0;
-        phydro->u(IM2,k,j,i) *= (den*amp);
-        phydro->u(IM3,k,j,i) = 0.0;
-        if (NON_BAROTROPIC_EOS) {
-          phydro->u(IEN,k,j,i) = (1.0/gamma + grav_acc*den*(pcoord->x2v(j)))/gm1;
-          phydro->u(IEN,k,j,i) += 0.5*SQR(phydro->u(IM2,k,j,i))/den;
-        }
+      	if (j == js) {
+      		phydro->w(IVX,k,j,i) = 300.0;
+      		phydro->w(IPR,k,j,i) = 100000.0;
+      		phydro->w(IDN,k,j,i) = phydro->w(IPR,k,j,i)/phydro->w(IVX,k,j,i)/(8.31/28.97/0.001);
+      	} else {
+      	phydro->w(IVX,k,j,i) = phydro->w(IVX,k,j-1,i) - 9.8 * (pcoord->x2v(j) - pcoord->x2v(j-1)) / 1004.0;
+      	phydro->w(IPR,k,j,i) = phydro->w(IPR,k,j-1,i) * pow(phydro->w(IVX,k,j,i)/phydro->w(IVX,k,j-1,i), 1004.0/(8.31/28.97/0.001) );
+      	phydro->w(IDN,k,j,i) = phydro->w(IPR,k,j,i)/phydro->w(IVX,k,j,i)/(8.31/28.97/0.001);
+      }
       }
     }}
 
-    // initialize interface B, same for all iprob
-    if (MAGNETIC_FIELDS_ENABLED) {
-      // Read magnetic field strength, angle [in degrees, 0 is along +ve X-axis]
-      Real b0 = pin->GetReal("problem","b0");
-      for (int k=ks; k<=ke; k++) {
-      for (int j=js; j<=je; j++) {
-      for (int i=is; i<=ie+1; i++) {
-        pfield->b.x1f(k,j,i) = b0;
-      }}}
-      for (int k=ks; k<=ke; k++) {
-      for (int j=js; j<=je+1; j++) {
+    for (int k=ks; k<=ke; k++) {
+    for (int j=js; j<=je; j++) {
       for (int i=is; i<=ie; i++) {
-        pfield->b.x2f(k,j,i) = 0.0;
-      }}}
-      for (int k=ks; k<=ke+1; k++) {
-      for (int j=js; j<=je; j++) {
-      for (int i=is; i<=ie; i++) {
-        pfield->b.x3f(k,j,i) = 0.0;
-      }}}
-      if (NON_BAROTROPIC_EOS) {
-        for (int k=ks; k<=ke; k++) {
-        for (int j=js; j<=je; j++) {
-        for (int i=is; i<=ie; i++) {
-          phydro->u(IEN,k,j,i) += 0.5*b0*b0;
-        }}}
+      	temp = sqrt(pow(pcoord->x1v(i)-19200,2)/4000.0/4000.0 + pow(pcoord->x2v(j)-3000.0,2)/2000.0/2000.0);
+      	if (temp <= 1.0) {
+      		phydro->w(IVX,k,j,i) = phydro->w(IVX,k,j,i) - 15.0* (cos(3.1415926*temp)+1.0) /2.0;
+      		phydro->w(IDN,k,j,i) = phydro->w(IPR,k,j,i)/phydro->w(IVX,k,j,i)/(8.31/28.97/0.001);
+      	} 
       }
-    }
+    }}
+
+    for (int k=ks; k<=ke; k++) {
+    for (int j=js; j<=je; j++) {
+      for (int i=is; i<=ie; i++) {
+        if (iprob == 1) {
+          phydro->w(IVY,k,j,i) = (1.0+cos(kx*pcoord->x1v(i)))*(1.0+cos(ky*pcoord->x2v(j)))/4.0;
+        } else {
+          phydro->w(IVY,k,j,i) = (ran2(&iseed) - 0.5)*(1.0+cos(ky*pcoord->x2v(j)));
+        }
+        phydro->w(IVX,k,j,i) = 0.0;
+        phydro->w(IVY,k,j,i) = 0.0;
+        phydro->w(IVZ,k,j,i) = 0.0;
+      }
+    }}
+
+
+  peos->PrimitiveToConserved(phydro->w, pfield->bcc, phydro->u, pcoord, is, ie, js, je, ks, ke);
+
 
 // 3D PROBLEM ----------------------------------------------------------------
 
